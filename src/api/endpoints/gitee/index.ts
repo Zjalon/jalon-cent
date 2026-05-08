@@ -1,8 +1,8 @@
 import type { Modal } from "@/components/modal";
 import { Scheduler } from "@/database/scheduler";
 import { BillIndexedDBStorage } from "@/database/storage";
+import { t } from "@/i18n";
 import type { Bill } from "@/ledger/type";
-import { t } from "@/locale";
 import { createTidal } from "@/tidal";
 import { createGiteeSyncer } from "@/tidal/gitee";
 import type { SyncEndpointFactory } from "../type";

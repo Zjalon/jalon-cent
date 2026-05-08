@@ -1,0 +1,21 @@
+<template>
+    <div class="page">
+        <van-nav-bar title="资产" />
+        <div class="content">
+            <van-empty description="暂无资产" />
+        </div>
+    </div>
+</template>
+
+<style scoped>
+.page {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.content {
+    flex: 1;
+    overflow-y: auto;
+}
+</style>
