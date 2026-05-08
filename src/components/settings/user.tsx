@@ -117,7 +117,7 @@ function Form({ onCancel }: { onCancel?: () => void }) {
                                     </Button>
                                     <Button size={"sm"} asChild>
                                         <a
-                                            href={`https://github.com/${currentBookId}/settings/access`}
+                                            href={`https://gitee.com/${currentBookId}/settings/access`}
                                             target="_blank"
                                         >
                                             <i className="icon-[mdi--settings]" />

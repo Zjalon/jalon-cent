@@ -60,6 +60,8 @@ export const createGiteeSyncer = (config: {
             (p, c) => {
                 if (c.path === "meta.json") {
                     p.meta = c;
+                } else if (c.path === "profile.json") {
+                    p.profile = c;
                 } else if (c.path.startsWith("assets/")) {
                     p.assets.push(c);
                 } else if (

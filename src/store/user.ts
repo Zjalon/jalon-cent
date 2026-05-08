@@ -61,7 +61,7 @@ export const useUserStore = create<UserStore>()(
                         const { toast } = await toastLib;
                         toast.error(
                             t(
-                                "token-expired-please-re-login-to-github-from-setting-page",
+                                "token-expired-please-re-login-to-gitee-from-setting-page",
                             ),
                             {
                                 position: "top-center",

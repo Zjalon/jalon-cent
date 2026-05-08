@@ -6,8 +6,6 @@ import { useShallow } from "zustand/shallow";
 import { useIntl } from "@/locale";
 import { useGuideStore } from "@/store/guide";
 import { useLedgerStore } from "@/store/ledger";
-import { showBudget } from "../budget";
-import { showCurrencyList } from "../currency";
 
 export type PromotionItem = {
     id: string;
@@ -37,13 +35,6 @@ const WhatsNew: (PromotionItem & { action?: () => void })[] = [
         },
     },
     {
-        id: "currency-update-v2",
-        label: "currency-update-v2-hint",
-        action: () => {
-            showCurrencyList();
-        },
-    },
-    {
         id: "whats-new-1.1",
         label: "whats-new-1.1-promotion-label",
         action: () => {
@@ -66,32 +57,7 @@ export const addPromotion = (item: PromotionItem) => {
     });
 };
 
-/** 记账后推荐制定预算 */
-const BudgetPromotionItem = {
-    id: "budget-promotion",
-    label: "budget-promotion-label",
-    action: () => {
-        showBudget();
-    },
-};
-
-const AllPromotions = [BudgetPromotionItem, ...WhatsNew];
-
-export const afterAddBillPromotion = async () => {
-    const isClosed = useGuideStore
-        .getState()
-        .closedPromotionIds?.includes(BudgetPromotionItem.id);
-    if (isClosed) {
-        return;
-    }
-    const budgets = useLedgerStore.getState().infos?.meta.budgets;
-    if ((budgets?.length ?? 0) >= 1) {
-        return;
-    }
-    setTimeout(() => {
-        addPromotion(BudgetPromotionItem);
-    }, 2000);
-};
+const AllPromotions = [...WhatsNew];
 
 export function Promotion() {
     const t = useIntl();

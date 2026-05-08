@@ -1,33 +1,19 @@
 import dayjs from "dayjs";
-import {
-    useCallback,
-    useEffect,
-    useLayoutEffect,
-    useMemo,
-    useRef,
-    useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/shallow";
 import { StorageAPI } from "@/api/storage";
 import CloudLoopIcon from "@/assets/icons/cloud-loop.svg?react";
 import AnimatedNumber from "@/components/animated-number";
 import { showBookGuide } from "@/components/book/util";
-import BudgetCard from "@/components/budget/card";
 import { HintTooltip } from "@/components/hint";
-import { PaginationIndicator } from "@/components/indicator";
 import Ledger from "@/components/ledger";
 import Loading from "@/components/loading";
 import { Promotion } from "@/components/promotion";
-import WidgetPreview from "@/components/widget/preview";
-import { useBudget } from "@/hooks/use-budget";
-import { useSnap } from "@/hooks/use-snap";
-import { useWidget } from "@/hooks/use-widget";
 import { amountToNumber } from "@/ledger/bill";
 import { useIntl } from "@/locale";
 import { useBookStore } from "@/store/book";
 import { useLedgerStore } from "@/store/ledger";
 import { usePreferenceStore } from "@/store/preference";
-import { useUserStore } from "@/store/user";
 import { cn } from "@/utils";
 import { filterOrderedBillListByTimeRange } from "@/utils/filter";
 import { denseDate } from "@/utils/time";
@@ -47,7 +33,6 @@ export default function Page() {
     const showAssets = usePreferenceStore(
         useShallow((state) => state.showAssetsInLedger),
     );
-    const { id: userId } = useUserStore();
     const syncIconClassName =
         sync === "wait"
             ? "icon-[mdi--cloud-minus-outline]"
@@ -76,31 +61,6 @@ export default function Page() {
         );
     }, [currentDateBills]);
 
-    const { budgets: allBudgets } = useBudget();
-    const budgets = allBudgets.filter((b) => {
-        return b.joiners.includes(userId) && b.start < Date.now();
-    });
-
-    const { homeWidgets } = useWidget();
-
-    const budgetContainer = useRef<HTMLDivElement>(null);
-    const widgetContainer = useRef<HTMLDivElement>(null);
-    const { count: budgetCount, index: curBudgetIndex } = useSnap(
-        budgetContainer,
-        0,
-    );
-    useSnap(widgetContainer, 0);
-
-    const allLoaded = useRef(false);
-    // 有预算时需要加载全部bills
-    useLayoutEffect(() => {
-        if (!allLoaded.current && budgets.length > 0) {
-            useLedgerStore.getState().refreshBillList();
-            allLoaded.current = true;
-        }
-    }, [budgets.length]);
-
-    // 滚动时需要加载全部bills
     const onDateClick = useCallback(
         (date: dayjs.Dayjs) => {
             setCurrentDate(date);
@@ -114,13 +74,6 @@ export default function Page() {
         },
         [bills],
     );
-
-    const onItemShow = useCallback((index: number) => {
-        if (!allLoaded.current && index >= 120) {
-            useLedgerStore.getState().refreshBillList();
-            allLoaded.current = true;
-        }
-    }, []);
 
     const presence = useMemo(() => {
         if (ledgerAnimationShows) {
@@ -136,66 +89,35 @@ export default function Page() {
     return (
         <div className="w-full h-full p-2 flex flex-col overflow-hidden page-show">
             <div className="flex flex-wrap flex-col w-full gap-2">
-                <div
-                    data-today-overview
-                    className="bg-stone-800 text-background dark:bg-foreground/20 dark:text-foreground relative h-20 w-full flex justify-end rounded-lg sm:flex-1 p-4"
-                >
-                    <span className="absolute top-2 left-4">
-                        {denseDate(currentDate)}
-                    </span>
-                    <AnimatedNumber
-                        value={currentDateAmount}
-                        className="font-bold text-4xl "
-                    />
-                    {currentBook && (
-                        <button
-                            type="button"
-                            className="absolute bottom-2 left-4 text-xs opacity-60 flex items-center gap-1 cursor-pointer"
-                            onClick={() => {
-                                showBookGuide();
-                            }}
-                        >
-                            <i className="icon-[mdi--book]"></i>
-                            {currentBook.name}
-                        </button>
-                    )}
+                <div className="relative bg-gradient-to-br from-stone-800 to-stone-900 text-white rounded-2xl p-5 w-full overflow-hidden">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(255,255,255,0.08),transparent_60%)]" />
+                    <div className="relative flex items-start justify-between">
+                        <div className="flex flex-col gap-1">
+                            <span className="text-xs text-white/60 font-medium tracking-wide uppercase">
+                                {denseDate(currentDate)}
+                            </span>
+                            <AnimatedNumber
+                                value={currentDateAmount}
+                                className="font-bold text-4xl tracking-tight"
+                            />
+                        </div>
+                        {currentBook && (
+                            <button
+                                type="button"
+                                className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/15 hover:bg-white/25 text-xs font-medium transition-colors cursor-pointer"
+                                onClick={() => {
+                                    showBookGuide();
+                                }}
+                            >
+                                <i className="icon-[mdi--book] size-3.5" />
+                                {currentBook.name}
+                            </button>
+                        )}
+                    </div>
                 </div>
                 <Promotion />
-                {homeWidgets.length > 0 && (
-                    <div className="w-full flex flex-col gap-1">
-                        <div
-                            ref={widgetContainer}
-                            className="w-full flex overflow-x-auto gap-2 scrollbar-hidden snap-mandatory snap-x"
-                        >
-                            {homeWidgets.map((widget) => (
-                                <div
-                                    key={widget.id}
-                                    className="flex-shrink-0 snap-start w-full min-h-[100px] border rounded-lg overflow-hidden"
-                                >
-                                    <WidgetPreview widget={widget} />
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-                <div className="w-full flex flex-col gap-1">
-                    <div
-                        ref={budgetContainer}
-                        className="w-full flex overflow-x-auto gap-2 scrollbar-hidden snap-mandatory snap-x"
-                    >
-                        {budgets.map((budget) => {
-                            return (
-                                <BudgetCard
-                                    className="flex-shrink-0 snap-start"
-                                    key={budget.id}
-                                    budget={budget}
-                                />
-                            );
-                        })}
-                    </div>
-                </div>
             </div>
-            <div className="flex justify-between items-center pl-7 pr-5 py-1 h-8">
+            <div className="flex justify-between items-center px-4 py-1.5 h-8">
                 <button
                     className="cursor-pointer flex items-center"
                     type="button"
@@ -210,14 +132,7 @@ export default function Page() {
                         <Loading className="[&_i]:size-[18px]" />
                     </div>
                 </button>
-                <div className="flex items-center gap-2">
-                    {budgetCount > 1 && (
-                        <PaginationIndicator
-                            count={budgetCount}
-                            current={curBudgetIndex}
-                        />
-                    )}
-                </div>
+                <div className="flex items-center gap-2" />
                 <HintTooltip
                     persistKey={"cloudSyncHintShows"}
                     content={"等待云同步完成后，其他设备即可获取最新的账单数据"}
@@ -248,15 +163,17 @@ export default function Page() {
                             className={cn(bills.length > 0 && "relative")}
                             enableDivideAsOrdered
                             showTime
-                            onItemShow={onItemShow}
                             onVisibleDateChange={setCurrentDate}
                             onDateClick={onDateClick}
                             presence={presence}
                             showAssets={showAssets}
                         />
                     ) : (
-                        <div className="text-xs p-4 text-center">
-                            {t("nothing-here-add-one-bill")}
+                        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                            <i className="icon-[mdi--receipt-text-outline] size-12 mb-3 opacity-30" />
+                            <p className="text-sm">
+                                {t("nothing-here-add-one-bill")}
+                            </p>
                         </div>
                     )}
                 </div>

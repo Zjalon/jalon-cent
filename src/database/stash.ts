@@ -153,6 +153,25 @@ export class StashBucket<T extends BaseItem, Meta = any, Config = any> {
         return fullMeta;
     }
 
+    async getProfile(): Promise<any> {
+        const config = (await this.configStorage.getValue()) as any;
+        return config?.profileData;
+    }
+
+    async setProfile(data: any) {
+        const config = ((await this.configStorage.getValue()) ?? {}) as any;
+        await this.configStorage.setValue({
+            ...config,
+            profileData: data,
+            profileDirty: true,
+        });
+    }
+
+    async isProfileDirty(): Promise<boolean> {
+        const config = (await this.configStorage.getValue()) as any;
+        return Boolean(config?.profileDirty);
+    }
+
     async batch(actions: Action<T>[], overlap = false) {
         const now = Date.now();
         const fullActions = actions.map(

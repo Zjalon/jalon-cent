@@ -1,5 +1,7 @@
 import { Switch } from "radix-ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AccountSelector } from "@/components/account/selector";
+import { useAccount } from "@/hooks/use-account";
 import useCategory from "@/hooks/use-category";
 import { useCurrency } from "@/hooks/use-currency";
 import { useWheelScrollX } from "@/hooks/use-wheel-scroll";
@@ -34,6 +36,8 @@ const defaultBill = {
     comment: "",
     amount: 0,
     categoryId: ExpenseBillCategories[0].id,
+    accountId: "cash",
+    transferTo: undefined as string | undefined,
 };
 
 export default function EditorForm({
@@ -54,6 +58,8 @@ export default function EditorForm({
         useCurrency();
 
     const { incomes, expenses, categories: allCategories } = useCategory();
+
+    const { accounts } = useAccount();
 
     const isCreate = edit === undefined;
 
@@ -278,32 +284,41 @@ export default function EditorForm({
                 onBack={goBack}
                 title={
                     <div className="pl-[54px] w-full min-h-12 rounded-lg flex pt-2 pb-0 overflow-hidden scrollbar-hidden">
-                        <div className="text-white">
-                            <Switch.Root
-                                className="w-24 h-12 relative bg-stone-900 rounded-lg p-1 flex justify-center items-center"
-                                checked={billState.type === "income"}
-                                onCheckedChange={() => {
-                                    setBillState((v) => ({
-                                        ...v,
-                                        type:
-                                            v.type === "expense"
-                                                ? "income"
-                                                : "expense",
-                                        categoryId:
-                                            v.type === "expense"
-                                                ? IncomeBillCategories[0].id
-                                                : ExpenseBillCategories[0].id,
-                                    }));
-                                }}
-                            >
-                                <Switch.Thumb className="w-1/2 h-full flex justify-center items-center transition-all rounded-md bg-semantic-expense -translate-x-[22px] data-[state=checked]:bg-semantic-income data-[state=checked]:translate-x-[21px]">
-                                    <span className="text-[8px]">
-                                        {billState.type === "expense"
-                                            ? t("expense")
-                                            : t("income")}
-                                    </span>
-                                </Switch.Thumb>
-                            </Switch.Root>
+                        <div className="text-white flex gap-1">
+                            {(["expense", "income", "transfer"] as const).map(
+                                (type) => (
+                                    <button
+                                        key={type}
+                                        type="button"
+                                        className={cn(
+                                            "px-3 h-12 rounded-lg text-[10px] font-medium transition-all cursor-pointer",
+                                            billState.type === type
+                                                ? type === "expense"
+                                                    ? "bg-semantic-expense"
+                                                    : type === "income"
+                                                      ? "bg-semantic-income"
+                                                      : "bg-blue-500"
+                                                : "bg-stone-900 opacity-60",
+                                        )}
+                                        onClick={() => {
+                                            setBillState((v) => ({
+                                                ...v,
+                                                type,
+                                                categoryId:
+                                                    type === "income"
+                                                        ? IncomeBillCategories[0]
+                                                              .id
+                                                        : type === "expense"
+                                                          ? ExpenseBillCategories[0]
+                                                                .id
+                                                          : v.categoryId,
+                                            }));
+                                        }}
+                                    >
+                                        {t(type)}
+                                    </button>
+                                ),
+                            )}
                         </div>
                         <div className="flex-1 flex bg-stone-400 focus:outline rounded-lg ml-2 px-2 relative">
                             {quickCurrencies.length > 0 && (
@@ -368,69 +383,74 @@ export default function EditorForm({
                     </div>
                 }
             >
-                {/* categories */}
-                <div className="flex-1 flex-shrink-0 overflow-y-auto min-h-[80px] scrollbar-hidden flex flex-col px-2 text-sm font-medium gap-2">
-                    <div className="flex flex-col min-h-[80px] grow-[2] shrink overflow-y-auto scrollbar-hidden w-full">
-                        <div
-                            className={cn(
-                                "grid gap-1",
-                                categoriesGridClassName(categories),
-                            )}
-                        >
-                            {categories.map((item) => (
-                                <CategoryItem
-                                    key={item.id}
-                                    category={item}
-                                    selected={billState.categoryId === item.id}
-                                    onMouseDown={() => {
-                                        handleParentCategoryClick(item.id);
-                                    }}
-                                />
-                            ))}
-                            <button
-                                type="button"
-                                className={cn(
-                                    `rounded-lg border flex-1 py-1 px-2 h-8 flex gap-2 items-center justify-center whitespace-nowrap cursor-pointer`,
-                                )}
-                                onClick={() => {
-                                    showCategoryList(billState.type);
-                                }}
-                            >
-                                <i className="icon-[mdi--settings]"></i>
-                                {t("edit")}
-                            </button>
-                        </div>
-                    </div>
-                    {(subCategories?.length ?? 0) > 0 && (
-                        <div className="flex flex-col min-h-[68px] grow-[1] shrink max-h-fit overflow-y-auto rounded-md border p-2 shadow scrollbar-hidden">
+                {/* categories (hidden in transfer mode) */}
+                {billState.type !== "transfer" && (
+                    <div className="flex-1 flex-shrink-0 overflow-y-auto min-h-[80px] scrollbar-hidden flex flex-col px-2 text-sm font-medium gap-2">
+                        <div className="flex flex-col min-h-[80px] grow-[2] shrink overflow-y-auto scrollbar-hidden w-full">
                             <div
                                 className={cn(
                                     "grid gap-1",
-                                    categoriesGridClassName(subCategories),
+                                    categoriesGridClassName(categories),
                                 )}
                             >
-                                {subCategories?.map((subCategory) => {
-                                    return (
-                                        <CategoryItem
-                                            key={subCategory.id}
-                                            category={subCategory}
-                                            selected={
-                                                billState.categoryId ===
-                                                subCategory.id
-                                            }
-                                            onMouseDown={() => {
-                                                setBillState((v) => ({
-                                                    ...v,
-                                                    categoryId: subCategory.id,
-                                                }));
-                                            }}
-                                        />
-                                    );
-                                })}
+                                {categories.map((item) => (
+                                    <CategoryItem
+                                        key={item.id}
+                                        category={item}
+                                        selected={
+                                            billState.categoryId === item.id
+                                        }
+                                        onMouseDown={() => {
+                                            handleParentCategoryClick(item.id);
+                                        }}
+                                    />
+                                ))}
+                                <button
+                                    type="button"
+                                    className={cn(
+                                        `rounded-lg border flex-1 py-1 px-2 h-8 flex gap-2 items-center justify-center whitespace-nowrap cursor-pointer`,
+                                    )}
+                                    onClick={() => {
+                                        showCategoryList(billState.type);
+                                    }}
+                                >
+                                    <i className="icon-[mdi--settings]"></i>
+                                    {t("edit")}
+                                </button>
                             </div>
                         </div>
-                    )}
-                </div>
+                        {(subCategories?.length ?? 0) > 0 && (
+                            <div className="flex flex-col min-h-[68px] grow-[1] shrink max-h-fit overflow-y-auto rounded-md border p-2 shadow scrollbar-hidden">
+                                <div
+                                    className={cn(
+                                        "grid gap-1",
+                                        categoriesGridClassName(subCategories),
+                                    )}
+                                >
+                                    {subCategories?.map((subCategory) => {
+                                        return (
+                                            <CategoryItem
+                                                key={subCategory.id}
+                                                category={subCategory}
+                                                selected={
+                                                    billState.categoryId ===
+                                                    subCategory.id
+                                                }
+                                                onMouseDown={() => {
+                                                    setBillState((v) => ({
+                                                        ...v,
+                                                        categoryId:
+                                                            subCategory.id,
+                                                    }));
+                                                }}
+                                            />
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
                 {/* tags */}
                 <div
                     ref={tagSelectorRef}
@@ -462,6 +482,56 @@ export default function EditorForm({
                         {t("edit-tags")}
                     </button>
                 </div>
+
+                {/* account */}
+                {accounts.length > 0 && (
+                    <div className="flex flex-col gap-1">
+                        {billState.type === "transfer" ? (
+                            <>
+                                <div className="flex items-center gap-2 px-2 text-xs text-muted-foreground">
+                                    <span>{t("from-account")}</span>
+                                    <span className="flex-1" />
+                                    <span>{t("to-account")}</span>
+                                </div>
+                                <div className="flex gap-2 items-center">
+                                    <div className="flex-1">
+                                        <AccountSelector
+                                            value={billState.accountId}
+                                            onChange={(accountId) => {
+                                                setBillState((prev) => ({
+                                                    ...prev,
+                                                    accountId,
+                                                }));
+                                            }}
+                                        />
+                                    </div>
+                                    <i className="icon-[mdi--arrow-right] size-4 text-muted-foreground" />
+                                    <div className="flex-1">
+                                        <AccountSelector
+                                            value={billState.transferTo}
+                                            onChange={(transferTo) => {
+                                                setBillState((prev) => ({
+                                                    ...prev,
+                                                    transferTo,
+                                                }));
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <AccountSelector
+                                value={billState.accountId}
+                                onChange={(accountId) => {
+                                    setBillState((prev) => ({
+                                        ...prev,
+                                        accountId,
+                                    }));
+                                }}
+                            />
+                        )}
+                    </div>
+                )}
 
                 {/* keyboard area */}
                 <div

@@ -20,12 +20,14 @@ export type StoreStructure<F = FileLike> = {
     chunks: (F & { startIndex: number })[];
     meta: F;
     assets: F[];
+    profile?: F;
 };
 
 export type StoreDetail = {
     chunks: (FileWithContent & { startIndex: number; endIndex: number })[];
     meta: FileWithContent;
     assets: FileLike[];
+    profile?: FileWithContent;
 };
 
 export type Syncer = {
@@ -169,9 +171,11 @@ export const createTidal = <Item extends BaseItem>({
             storeFullName,
             Array.from(
                 new Set(
-                    [structure.meta, ...structure.chunks].filter(
-                        (v) => v !== undefined,
-                    ),
+                    [
+                        structure.meta,
+                        ...structure.chunks,
+                        structure.profile,
+                    ].filter((v) => v !== undefined),
                 ),
             ),
         );
@@ -208,8 +212,11 @@ export const createTidal = <Item extends BaseItem>({
         } else {
             await itemBucket.init(remoteItems, detail.meta?.content);
         }
+        const config = (await itemBucket.configStorage.getValue()) ?? {};
         await itemBucket.configStorage.setValue({
+            ...config,
             structure: remote,
+            profileData: detail.profile?.content ?? config.profileData,
         });
         notifyChange(storeFullName);
     };
@@ -249,10 +256,11 @@ export const createTidal = <Item extends BaseItem>({
             Array.from(storeMap.entries()).map(
                 async ([storeFullName, { itemBucket }]) => {
                     const stashes = await itemBucket.stashStorage.toArray();
-                    if (stashes.length === 0) {
+                    const profileDirty = await itemBucket.isProfileDirty();
+                    if (stashes.length === 0 && !profileDirty) {
                         return;
                     }
-                    const isOverlap = Boolean(stashes[0].overlap);
+                    const isOverlap = Boolean(stashes[0]?.overlap);
                     // separate meta and item stashes
                     const metaStashes = stashes.filter(
                         (v) => v.type === "meta",
@@ -378,8 +386,41 @@ export const createTidal = <Item extends BaseItem>({
                         runMetaStashesHandler(),
                     ]);
 
+                    // handle profile and account changes
+                    const profileFiles: {
+                        path: string;
+                        content: any;
+                    }[] = [];
+                    const remoteStructure = await getRemoteStructure();
+
+                    if (profileDirty) {
+                        const localProfile = await itemBucket.getProfile();
+                        if (localProfile) {
+                            const remoteProfile = remoteStructure.profile
+                                ? (
+                                      await fetchContent(
+                                          storeFullName,
+                                          [remoteStructure.profile],
+                                          signal,
+                                      )
+                                  )[0]?.content
+                                : undefined;
+                            const merged = remoteProfile
+                                ? mergeMeta(remoteProfile, localProfile)
+                                : localProfile;
+                            profileFiles.push({
+                                path: "profile.json",
+                                content: merged,
+                            });
+                        }
+                    }
+
                     // prepare files for upload: we will call syncer.uploadContent with FileWithContent[]
-                    const filesToUpload = [...itemResult.chunks, ...metaResult];
+                    const filesToUpload = [
+                        ...itemResult.chunks,
+                        ...metaResult,
+                        ...profileFiles,
+                    ];
 
                     // upload assets (actual upload of binary files) - the syncer.transformAsset above only transforms keys.
                     // For GitHub syncer we need to actually upload assets as blobs to assets/<name>
@@ -408,12 +449,16 @@ export const createTidal = <Item extends BaseItem>({
                     );
 
                     // after success, delete local stashes & update local meta
+                    const config =
+                        (await itemBucket.configStorage.getValue()) ?? {};
                     await Promise.all([
                         itemBucket.deleteStashes(
                             ...stashes.map((s: any) => s.id),
                         ),
                         itemBucket.configStorage.setValue({
+                            ...config,
                             structure: newStructure,
+                            ...(profileDirty ? { profileDirty: false } : {}),
                         }),
                         (async () => {
                             if (metaResult[0]) {
@@ -432,10 +477,22 @@ export const createTidal = <Item extends BaseItem>({
         const somes = await Promise.all(
             Array.from(storeMap.values()).map(async ({ itemBucket }) => {
                 const items = await itemBucket.stashStorage.toArray();
-                return items.length > 0;
+                const profileDirty = await itemBucket.isProfileDirty();
+                return items.length > 0 || profileDirty;
             }),
         );
         return somes.some((v) => v);
+    };
+
+    const getProfile = async (storeFullName: string) => {
+        const { itemBucket } = getStore(storeFullName);
+        return (await itemBucket.getProfile()) ?? {};
+    };
+
+    const setProfile = async (storeFullName: string, data: any) => {
+        const { itemBucket } = getStore(storeFullName);
+        await itemBucket.setProfile(data);
+        notifyChange(storeFullName);
     };
 
     // sync() returns [pendingPromise, cancelFn]
@@ -481,12 +538,15 @@ export const createTidal = <Item extends BaseItem>({
         onChange,
         hasStashes,
         forceNeedSync,
+        getProfile,
+        setProfile,
     };
 };
 
 type DiffedStructure = {
     meta?: StoreStructure["meta"];
     chunks: StoreStructure["chunks"];
+    profile?: StoreStructure["profile"];
 };
 const diffStructure = (
     remote: StoreStructure,
@@ -498,6 +558,10 @@ const diffStructure = (
     const diff: DiffedStructure = {
         meta: remote.meta.sha !== local.meta.sha ? remote.meta : undefined,
         chunks: [],
+        profile:
+            remote.profile?.sha !== local.profile?.sha
+                ? remote.profile
+                : undefined,
     };
     const diffChunkIndex = remote.chunks.findIndex((c, i) => {
         if (c.sha !== local.chunks[i]?.sha) {

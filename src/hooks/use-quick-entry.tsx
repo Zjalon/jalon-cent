@@ -3,7 +3,6 @@ import { toast } from "sonner";
 import { useShallow } from "zustand/shallow";
 import { xmlTextToBills } from "@/components/assistant/text-to-bill";
 import { goAddBill } from "@/components/bill-editor";
-import { afterAddBillPromotion } from "@/components/promotion";
 import { Button } from "@/components/ui/button";
 import { numberToAmount } from "@/ledger/bill";
 import { t, useIntl } from "@/locale";
@@ -23,7 +22,6 @@ export function useQuickGoAdd() {
     useRapidReducedMotionChange(
         useCallback(() => {
             goAddBill();
-            afterAddBillPromotion();
         }, []),
         {
             disabled: !enterAddBillWhenReduceMotionChanged,

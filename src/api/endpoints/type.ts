@@ -49,6 +49,9 @@ export type SyncEndpoint = {
     getOnlineAsset?: (src: string, store: string) => Promise<Blob | undefined>;
 
     forceNeedSync?: (store: string) => void;
+
+    getProfile: (bookId: string) => Promise<any>;
+    setProfile: (bookId: string, data: any) => Promise<void>;
 };
 
 export type SyncEndpointFactory = {

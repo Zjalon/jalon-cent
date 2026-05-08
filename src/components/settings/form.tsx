@@ -4,22 +4,14 @@ import { useIntl } from "@/locale";
 import { useUserStore } from "@/store/user";
 import TagSettingsItem from "../bill-tag";
 import { BookSettings } from "../book";
-import Budget from "../budget";
 import CategorySettingsItem from "../category";
-import CurrencySettingsItem from "../currency";
 import DataManagerSettingsItem from "../data-manager";
 import modal from "../modal";
 import ScheduledSettingsItems from "../scheduled/settings-item";
 import { Button } from "../ui/button";
-import WidgetSettings from "../widget";
-import AboutSettingsItem, { AdvancedGuideItem } from "./about";
 import AssistantSettingsItem from "./assistant";
-import LabSettingsItem from "./lab";
-import LanguageSettingsItem from "./language";
 import MapSettingsItem from "./map-settings";
-import PresetSettingsItem from "./preset";
 import QuickEntrySettingsItem from "./quick-entry";
-import ThemeSettingsItem from "./theme";
 import UserSettingsItem from "./user";
 import VoiceSettingsItem from "./voice";
 
@@ -114,8 +106,6 @@ export default function SettingsForm({
                         </div>
                         <div className="flex flex-col divide-y">
                             <BookSettings />
-                            <PresetSettingsItem />
-                            <WidgetSettings />
                             <UserSettingsItem />
                             <DataManagerSettingsItem />
                         </div>
@@ -135,23 +125,8 @@ export default function SettingsForm({
                         <div className="flex flex-col divide-y">
                             <CategorySettingsItem />
                             <TagSettingsItem />
-                            <Budget />
                             <ScheduledSettingsItems />
-                            <CurrencySettingsItem />
-                        </div>
-                    </div>
-
-                    <div>
-                        <div className="text-xs opacity-60 px-8">
-                            {t("other-settings")}
-                        </div>
-                        <div className="flex flex-col divide-y">
                             <MapSettingsItem />
-                            <LabSettingsItem />
-                            <AboutSettingsItem />
-                            <ThemeSettingsItem />
-                            <LanguageSettingsItem />
-                            <AdvancedGuideItem />
                         </div>
                     </div>
                 </div>

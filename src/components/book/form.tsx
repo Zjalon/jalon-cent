@@ -4,17 +4,14 @@ import { loadStorageAPI } from "@/api/storage/dynamic";
 import { useIntl } from "@/locale";
 import { useBookStore } from "@/store/book";
 import { useIsLogin } from "@/store/user";
+import { cn } from "@/utils";
 import Loading from "../loading";
 import modal from "../modal";
-import { Button } from "../ui/button";
-import { Checkbox } from "../ui/checkbox";
-import { Label } from "../ui/label";
 
-export function BookForm() {
+export function BookForm({ embedded }: { embedded?: boolean }) {
     const t = useIntl();
     const isLogin = useIsLogin();
     const { books, currentBookId, loading } = useBookStore();
-    // const bookNum = books.length;
 
     const [creating, setCreating] = useState(false);
 
@@ -53,99 +50,143 @@ export function BookForm() {
         }
     };
 
-    return (
-        <div className="w-fit h-full flex justify-center items-center pointer-events-auto">
-            <div className="bg-background w-[350px] h-[480px] max-h-[55vh] py-4 flex flex-col justify-center items-center rounded">
-                {books.length > 0 ? (
-                    <div className="flex-1 flex flex-col w-full gap-2 h-full overflow-hidden">
-                        <div className="flex gap-2 px-4">
+    const content = (
+        <>
+            <div className="relative bg-gradient-to-br from-stone-800 to-stone-900 px-6 py-5 text-white">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,rgba(255,255,255,0.08),transparent_60%)]" />
+                <div className="relative flex items-center justify-between">
+                    <div>
+                        <h2 className="text-lg font-semibold">
                             {t("select-a-book")}
-                            {loading && <Loading></Loading>}
-                        </div>
-                        <div className="flex flex-1 flex-col gap-2 px-4 overflow-y-auto">
-                            {books.map((book) => {
-                                return (
-                                    <Label
-                                        key={book.id}
-                                        className="flex-shrink-0 cursor-pointer hover:bg-accent/50 overflow-hidden flex items-center gap-3 rounded-lg border p-3 has-[[aria-checked=true]]:border-blue-600 has-[[aria-checked=true]]:bg-blue-50 dark:has-[[aria-checked=true]]:border-blue-900 dark:has-[[aria-checked=true]]:bg-blue-950"
-                                    >
-                                        <Checkbox
-                                            checked={book.id === currentBookId}
-                                            onCheckedChange={(v) => {
-                                                if (v) {
-                                                    toSwitchBook(book.id);
-                                                }
-                                            }}
-                                            className="inline-flex items-center data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:text-white dark:data-[state=checked]:border-blue-700 dark:data-[state=checked]:bg-blue-700"
-                                        />
-                                        <div className="flex-1 flex justify-between gap-1.5 font-normal overflow-hidden">
-                                            <div className="flex-1 text-sm leading-none font-medium flex flex-col gap-1 overflow-hidden">
-                                                <p>{book.name}</p>
-                                                <span className="text-xs opacity-60 truncate">
-                                                    {book.id}
-                                                </span>
-                                            </div>
-                                            <div className="flex gap-1 items-center">
-                                                {core?.StorageAPI
-                                                    .inviteForBook && (
-                                                    <Button
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            toInvite(book)
-                                                        }
-                                                    >
-                                                        {t("invite")}
-                                                    </Button>
-                                                )}
-                                                {currentBookId !== book.id && (
-                                                    <Button
-                                                        size="sm"
-                                                        variant="destructive"
-                                                        onClick={() =>
-                                                            toDelete(book)
-                                                        }
-                                                    >
-                                                        {t("delete")}
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </Label>
-                                );
-                            })}
-                        </div>
+                        </h2>
+                        <p className="text-xs text-white/50 mt-1">
+                            {books.length > 0
+                                ? `${books.length} ${books.length === 1 ? "book" : "books"}`
+                                : loading
+                                  ? t("loading-books")
+                                  : t("no-books-go-create-one")}
+                        </p>
                     </div>
-                ) : loading ? (
-                    <div className="flex-1">
+                    <button
+                        type="button"
+                        disabled={creating}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-sm font-medium transition-colors cursor-pointer disabled:opacity-50"
+                        onClick={async () => {
+                            const name = (await modal.prompt({
+                                title: t("please-input-book-name"),
+                                input: { type: "text" },
+                            })) as string;
+                            if (!name) return;
+                            setCreating(true);
+                            try {
+                                await (
+                                    await loadStorageAPI()
+                                ).StorageAPI.createBook(name);
+                                await useBookStore.getState().updateBookList();
+                            } finally {
+                                setCreating(false);
+                            }
+                        }}
+                    >
+                        {creating ? (
+                            <Loading className="[&_i]:size-4" />
+                        ) : (
+                            <i className="icon-[mdi--plus] size-4" />
+                        )}
+                        {t("create-new-book")}
+                    </button>
+                </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-3">
+                {loading && books.length === 0 ? (
+                    <div className="flex items-center justify-center py-12">
                         <Loading>{t("loading-books")}</Loading>
                     </div>
+                ) : books.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                        <i className="icon-[mdi--book-open-page-variant-outline] size-10 mb-3 opacity-40" />
+                        <p className="text-sm">{t("no-books-go-create-one")}</p>
+                    </div>
                 ) : (
-                    <div className="flex-1">{t("no-books-go-create-one")}</div>
+                    <div className="flex flex-col gap-2">
+                        {books.map((book) => {
+                            const isActive = book.id === currentBookId;
+                            return (
+                                <button
+                                    type="button"
+                                    key={book.id}
+                                    className={cn(
+                                        "group relative flex items-center gap-3 rounded-xl border p-3.5 transition-all cursor-pointer",
+                                        isActive
+                                            ? "border-l-4 border-l-stone-800 bg-stone-50 dark:bg-stone-800/30 dark:border-l-stone-400"
+                                            : "hover:bg-accent/50",
+                                    )}
+                                    onClick={() => toSwitchBook(book.id)}
+                                >
+                                    <div
+                                        className={cn(
+                                            "flex items-center justify-center size-9 rounded-lg text-white text-sm font-bold shrink-0",
+                                            isActive
+                                                ? "bg-stone-800 dark:bg-stone-600"
+                                                : "bg-stone-400 dark:bg-stone-600",
+                                        )}
+                                    >
+                                        {book.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium truncate">
+                                            {book.name}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground truncate mt-0.5">
+                                            {book.id}
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-1 items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        {core?.StorageAPI.inviteForBook && (
+                                            <button
+                                                type="button"
+                                                className="p-1.5 rounded-md hover:bg-accent text-muted-foreground cursor-pointer"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    toInvite(book);
+                                                }}
+                                            >
+                                                <i className="icon-[mdi--account-plus-outline] size-4" />
+                                            </button>
+                                        )}
+                                        {!isActive && (
+                                            <button
+                                                type="button"
+                                                className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive cursor-pointer"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    toDelete(book);
+                                                }}
+                                            >
+                                                <i className="icon-[mdi--delete-outline] size-4" />
+                                            </button>
+                                        )}
+                                    </div>
+                                    {isActive && (
+                                        <i className="icon-[mdi--check-circle] size-5 text-stone-800 dark:text-stone-400" />
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
                 )}
-                <Button
-                    disabled={creating}
-                    onClick={async () => {
-                        const name = (await modal.prompt({
-                            title: t("please-input-book-name"),
-                            input: { type: "text" },
-                        })) as string;
-                        if (!name) {
-                            return;
-                        }
-                        setCreating(true);
-                        const { StorageAPI } = await loadStorageAPI();
-                        try {
-                            const store = await StorageAPI.createBook(name);
-                            await useBookStore.getState().updateBookList();
-                        } finally {
-                            setCreating(false);
-                        }
-                    }}
-                >
-                    {creating && <Loading />}
-                    {t("create-new-book")}
-                </Button>
             </div>
+        </>
+    );
+
+    if (embedded) {
+        return content;
+    }
+
+    return (
+        <div className="pointer-events-auto w-[380px] max-w-[90vw] max-h-[70vh] flex flex-col rounded-2xl bg-background shadow-2xl overflow-hidden">
+            {content}
         </div>
     );
 }
@@ -159,7 +200,7 @@ export function BookConfirmForm({
 }) {
     return (
         <div>
-            <BookForm />
+            <BookForm embedded />
         </div>
     );
 }

@@ -18,6 +18,8 @@ const Stat = lazyWithReload(
 
 const Search = lazyWithReload(() => import("@/pages/search"));
 
+const Assets = lazyWithReload(() => import("@/pages/assets"));
+
 function RootRoute() {
     return (
         <Routes>
@@ -36,6 +38,14 @@ function RootRoute() {
                     element={
                         <Suspense fallback={<LoadingSkeleton />}>
                             <Stat />
+                        </Suspense>
+                    }
+                />
+                <Route
+                    path="/assets"
+                    element={
+                        <Suspense fallback={<LoadingSkeleton />}>
+                            <Assets />
                         </Suspense>
                     }
                 />

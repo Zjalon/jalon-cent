@@ -80,7 +80,7 @@ export default function createConfirmProvider<Value, Returned = Value>(
             >
                 <DialogPortal>
                     <DialogOverlay
-                        className="fixed inset-0 bg-black/50"
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
                         style={layerStyle}
                     />
                     <div

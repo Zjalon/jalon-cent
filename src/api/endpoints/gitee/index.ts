@@ -101,6 +101,9 @@ export const GiteeEndpoint: SyncEndpointFactory = {
             toSync: scheduler.schedule.bind(scheduler),
 
             forceNeedSync: repo.forceNeedSync,
+
+            getProfile: repo.getProfile,
+            setProfile: repo.setProfile,
         };
     },
 };

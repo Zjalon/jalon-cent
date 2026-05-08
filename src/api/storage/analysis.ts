@@ -10,7 +10,7 @@ dayjs.extend(isSameOrBefore);
 export type BillLike = {
     amount: number;
     time: number; // ms
-    type: "expense" | "income";
+    type: "expense" | "income" | "transfer";
     comment?: string;
 };
 

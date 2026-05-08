@@ -6,7 +6,8 @@ export const [BookConfirmProvider, showBookGuide] = createConfirmProvider(
     {
         dialogTitle: "Books",
         dialogModalClose: true,
-        contentClassName: "max-h-[55vh] w-fit max-w-[500px]",
+        contentClassName:
+            "max-h-[70vh] w-fit max-w-[500px] p-0 overflow-hidden rounded-2xl",
         fade: true,
     },
 );

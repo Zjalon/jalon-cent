@@ -1,5 +1,4 @@
 // @annotation: Full 在这里并无实际作用，只是用于拓展一些额外内容，无需考虑，Full<T> 可视为等价于 T
-import type { Widget } from "@/components/widget/type";
 import type { Full } from "@/database/stash";
 // @annotation: 其他工具type，无需考虑
 import type {
@@ -21,11 +20,29 @@ export type {
     Scheduled,
 };
 
-/** 账单类型，代表收入或者支出 */
-export type BillType = "income" | "expense";
+/** 账单类型，代表收入、支出或转账 */
+export type BillType = "income" | "expense" | "transfer";
 
 /** 整数金额，10000:1 */
 export type Amount = number;
+
+/** 账户类型 */
+export type BillAccount = {
+    id: string;
+    name: string;
+    icon: string;
+    color: string;
+    /** 初始余额，单位同 Amount (10000:1) */
+    initialBalance?: number;
+};
+
+/** 用户资料 */
+export type UserProfile = {
+    nickname?: string;
+    avatar?: string;
+    signature?: string;
+    phone?: string;
+};
 
 /** 地理位置类型 */
 export type GeoLocation = {
@@ -64,6 +81,10 @@ export type Bill = {
         // 记账当时填写的金额
         amount: number;
     };
+    /** 关联的账户 ID */
+    accountId?: string;
+    /** 转账目标账户 ID（仅 type="transfer" 时有值） */
+    transferTo?: string;
     /** 其他额外信息 */
     extra?: {
         scheduledId?: string;
@@ -119,6 +140,8 @@ export type GlobalMeta = {
     categories?: BillCategory[];
     // 自定义Tag，所有tag都应该放在这里
     tags: BillTag[];
+    // 账户列表
+    accounts?: BillAccount[];
     // 本位货币
     baseCurrency?: string;
     customCurrencies?: CustomCurrency[];
@@ -128,7 +151,7 @@ export type GlobalMeta = {
         amapSecurityCode?: string;
     };
     // Widget列表
-    widgets?: Widget[];
+    widgets?: any[];
 };
 
 // 这是最终导出的核心JSON数据结构，使用这个数据结构可以直接被解析成可以识别的数据
@@ -137,4 +160,6 @@ export type ExportedJSON = {
     items: Full<Bill>[];
     // 额外的配置数据
     meta: GlobalMeta;
+    // 用户资料
+    profile?: UserProfile;
 };

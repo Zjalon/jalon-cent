@@ -33,14 +33,12 @@ import {
 } from "@/components/stat/focus-type";
 import { TagItem } from "@/components/stat/static-item";
 import { Button } from "@/components/ui/button";
-import WidgetPreview from "@/components/widget/preview";
 import { useCurrency } from "@/hooks/use-currency";
 import {
     DefaultFilterViewId,
     useCustomFilters,
 } from "@/hooks/use-custom-filters";
 import { useTag } from "@/hooks/use-tag";
-import { useWidget } from "@/hooks/use-widget";
 import type {
     BillFilter,
     BillFilterView,
@@ -173,8 +171,6 @@ export default function Page() {
     });
 
     const totalMoneys = FocusTypes.map((t) => dataSources.total[t]);
-
-    const { widgets } = useWidget();
 
     const effectiveModules = useMemo(() => {
         return selectedFilterView?.modules ?? DefaultModuleOrder;
@@ -425,19 +421,6 @@ export default function Page() {
                     </div>
                 );
             }
-            if (module.startsWith("widget-")) {
-                const widgetId = module.slice(7);
-                const widget = widgets.find((w) => w.id === widgetId);
-                if (!widget) return null;
-                return (
-                    <div key={module} className="rounded-md border w-full">
-                        <WidgetPreview
-                            widget={widget}
-                            bills={getBillsByFocusType(focusType)}
-                        />
-                    </div>
-                );
-            }
             return null;
         },
         [
@@ -452,7 +435,6 @@ export default function Page() {
             dataSources.highestExpenseBill,
             dataSources.highestIncomeBill,
             t,
-            widgets,
         ],
     );
 

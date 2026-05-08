@@ -5,10 +5,7 @@ import { BillInfoProvider } from "@/components/bill-info";
 import { TagListProvider } from "@/components/bill-tag";
 import BookGuide from "@/components/book";
 import { BookConfirmProvider } from "@/components/book/util";
-import { BudgetEditProvider, BudgetProvider } from "@/components/budget";
-import { BudgetDetailProvider } from "@/components/budget/detail";
 import { CategoryListProvider } from "@/components/category";
-import { CurrencyListProvider } from "@/components/currency";
 import { ModalProvider } from "@/components/modal";
 import Navigation from "@/components/navigation";
 import {
@@ -21,7 +18,6 @@ import { SortableListWithEnableProvider } from "@/components/sortable/enable";
 import { SortableGroupProvider } from "@/components/sortable/group";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useInitPreset } from "@/hooks/use-preset";
 import {
     useQuickEntryByClipboard,
     useQuickEntryByRelayr,
@@ -54,8 +50,6 @@ export default function MainLayout() {
         applyScheduledRef.current();
     }, []);
 
-    useInitPreset();
-
     return (
         <ThemeProvider>
             <TooltipProvider>
@@ -69,12 +63,8 @@ export default function MainLayout() {
                 <SortableListWithEnableProvider />
                 <SortableGroupProvider />
                 <Settings />
-                <CurrencyListProvider />
                 <BookGuide />
                 <BookConfirmProvider />
-                <BudgetProvider />
-                <BudgetEditProvider />
-                <BudgetDetailProvider />
                 <ScheduledProvider />
                 <ScheduledEditProvider />
                 <TagListProvider />
