@@ -1,5 +1,4 @@
 import { type DBSchema, deleteDB, openDB } from "idb";
-import type { Bill } from "@/ledger/type";
 import {
     type Action,
     type ArrayableStorageFactory,
@@ -11,17 +10,17 @@ import {
 
 const DB_VERSION = 2;
 
-export interface GitrayDBSchema extends DBSchema {
+interface GenericDBSchema extends DBSchema {
     [StashBucket.STASH_NAME]: {
         key: string;
-        value: Action<Full<Bill>>;
+        value: Action<Full<any>>;
         indexes: {
             timestamp: string;
         };
     };
     [StashBucket.ITEM_NAME]: {
         key: string;
-        value: Full<Bill>;
+        value: Full<any>;
         indexes: {
             time: string;
             creatorId: string;
@@ -44,8 +43,8 @@ export class BillIndexedDBStorage implements StashStorage {
         this.dbName = dbName;
     }
     getDB() {
-        return openDB<GitrayDBSchema>(this.dbName, DB_VERSION, {
-            upgrade: (db, oldVersion, newVersion, transaction) => {
+        return openDB<GenericDBSchema>(this.dbName, DB_VERSION, {
+            upgrade: (db, _oldVersion, _newVersion, _transaction) => {
                 if (!db.objectStoreNames.contains(StashBucket.STASH_NAME)) {
                     const store = db.createObjectStore(StashBucket.STASH_NAME, {
                         autoIncrement: true,
@@ -101,40 +100,20 @@ export class BillIndexedDBStorage implements StashStorage {
             },
             toArray: async (limit?: number) => {
                 const db = await this.getDB();
-                const { store, index } = (() => {
-                    if (name === StashBucket.STASH_NAME) {
-                        const store = db
-                            .transaction(StashBucket.STASH_NAME)
-                            .objectStore(StashBucket.STASH_NAME);
-                        const index = store.index("timestamp");
-                        return {
-                            store,
-                            index,
-                        };
-                    }
-                    const store = db
-                        .transaction(StashBucket.ITEM_NAME)
-                        .objectStore(StashBucket.ITEM_NAME);
-                    const index = store.index("time");
-                    return {
-                        store,
-                        index,
-                    };
-                })();
-                const direction = "prev";
-
-                const localItems: any[] = [];
-                const range = IDBKeyRange.bound(-Infinity, Infinity);
-                let cursor = await index.openCursor(range, direction);
-                while (cursor) {
-                    localItems.push(cursor.value);
-                    if (limit !== undefined && localItems.length >= limit) {
-                        break;
-                    }
-                    cursor = await cursor.continue();
+                const storeName =
+                    name === StashBucket.STASH_NAME
+                        ? StashBucket.STASH_NAME
+                        : StashBucket.ITEM_NAME;
+                const tx = db.transaction(storeName);
+                const store = tx.objectStore(storeName);
+                let items: any[];
+                if (limit !== undefined) {
+                    items = await store.getAll(undefined, limit);
+                } else {
+                    items = await store.getAll();
                 }
                 db.close();
-                return localItems;
+                return items;
             },
         };
     };
@@ -160,12 +139,7 @@ export class BillIndexedDBStorage implements StashStorage {
             },
         };
     };
-    clearStorages = () => {
-        return deleteDB(this.dbName);
-    };
-
     dangerousClearAll = async () => {
-        // return deleteDB(this.dbName);
         const databases = await indexedDB.databases();
         await Promise.all(
             databases.map((db) => {
@@ -177,8 +151,4 @@ export class BillIndexedDBStorage implements StashStorage {
             }),
         );
     };
-
-    static getArrableStorageNames() {
-        return indexedDB.databases();
-    }
 }

@@ -1,6 +1,5 @@
 <template>
     <div class="page">
-        <van-nav-bar title="统计" />
         <div class="content">
             <van-empty description="暂无数据" />
         </div>

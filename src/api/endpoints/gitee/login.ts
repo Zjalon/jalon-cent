@@ -141,7 +141,7 @@ type GiteeTokenResponse = {
     token_type: string;
 };
 
-export type Token = {
+type Token = {
     accessToken: string;
     refreshToken?: string;
     expiresIn?: number;

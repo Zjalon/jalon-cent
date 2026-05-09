@@ -1,22 +1,15 @@
 import type { Modal } from "@/components/modal";
-import type { Action, Full } from "@/database/stash";
-import type { Bill } from "@/ledger/type";
+import type { Action, BaseItem, Full } from "@/database/stash";
+
 export type ChangeListener = (args: { bookId: string }) => void;
 
 export type UserInfo = {
     avatar_url: string;
     name: string;
-    // login: string;
     id: string;
 };
 
 export type Book = { id: string; name: string };
-
-export type SyncEndpointConfig = {
-    repoPrefix: string;
-    entryName: string;
-    orderKeys: string[];
-};
 
 export type SyncEndpoint = {
     logout: () => Promise<any>;
@@ -27,17 +20,23 @@ export type SyncEndpoint = {
         name: string;
     }>;
     initBook: (id: string) => Promise<any>;
+    initAllTables: (bookId: string) => Promise<any>;
     inviteForBook?: (bookId: string) => any;
     deleteBook: (bookId: string) => Promise<any>;
 
-    batch: (
+    onChange(listener: (args: { bookId: string }) => void): () => void;
+
+    // Table-level API
+    tableBatch: <T extends BaseItem>(
         bookId: string,
-        actions: Action<Bill>[],
+        tableName: string,
+        actions: Action<T>[],
         overlap?: boolean,
     ) => Promise<void>;
-    getMeta: (bookId: string) => Promise<any>;
-    getAllItems: (bookId: string) => Promise<Full<Bill>[]>;
-    onChange(listener: (args: { bookId: string }) => void): () => void;
+    tableGetAllItems: <T extends BaseItem>(
+        bookId: string,
+        tableName: string,
+    ) => Promise<Full<T>[]>;
 
     getIsNeedSync: () => Promise<boolean>;
     onSync: (processor: (finished: Promise<void>) => void) => () => void;

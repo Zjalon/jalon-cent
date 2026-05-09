@@ -1,6 +1,5 @@
 <template>
     <div class="page">
-        <van-nav-bar title="资产" />
         <div class="content">
             <van-empty description="暂无资产" />
         </div>

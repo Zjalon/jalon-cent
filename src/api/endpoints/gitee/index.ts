@@ -1,11 +1,13 @@
 import type { Modal } from "@/components/modal";
 import { Scheduler } from "@/database/scheduler";
+import type { Action, BaseItem, Full } from "@/database/stash";
 import { BillIndexedDBStorage } from "@/database/storage";
+import type { User } from "@/database/tables/user";
 import { t } from "@/i18n";
 import type { Bill } from "@/ledger/type";
 import { createTidal } from "@/tidal";
 import { createGiteeSyncer } from "@/tidal/gitee";
-import type { SyncEndpointFactory } from "../type";
+import type { SyncEndpoint, SyncEndpointFactory } from "../type";
 import { createLoginAPI } from "./login";
 
 const config = {
@@ -14,7 +16,9 @@ const config = {
     orderKeys: ["time"],
 };
 
-const LoginAPI = createLoginAPI();
+export const LoginAPI = createLoginAPI();
+
+const PROFILE_USERS_KEY = "centUsers";
 
 const manuallyLogin = async ({ modal }: { modal: Modal }) => {
     const token = await modal.prompt({
@@ -47,8 +51,8 @@ export const GiteeEndpoint: SyncEndpointFactory = {
         });
 
         const toBookName = (bookId: string) => {
-            const [owner, repo] = bookId.split("/");
-            return repo.replace(`${config.repoPrefix}-`, "");
+            const [, r] = bookId.split("/");
+            return r.replace(`${config.repoPrefix}-`, "");
         };
 
         const inviteForBook = async (bookId: string) => {
@@ -62,7 +66,7 @@ export const GiteeEndpoint: SyncEndpointFactory = {
                 `https://gitee.com/${bookId}/settings#remove`,
                 "_blank",
             );
-            return Promise.reject();
+            return Promise.reject(new Error("cancelled"));
         };
 
         const scheduler = new Scheduler(async (signal) => {
@@ -71,9 +75,37 @@ export const GiteeEndpoint: SyncEndpointFactory = {
             await finished;
         });
 
-        return {
+        const readUsersMap = async (
+            bookId: string,
+        ): Promise<Record<string, User>> => {
+            const profile = (await repo.getProfile(bookId)) as Record<
+                string,
+                unknown
+            > | null;
+            const raw = profile?.[PROFILE_USERS_KEY];
+            if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+                return raw as Record<string, User>;
+            }
+            return {};
+        };
+
+        const writeUsersMap = async (
+            bookId: string,
+            users: Record<string, User>,
+        ) => {
+            const prev =
+                ((await repo.getProfile(bookId)) as Record<string, unknown>) ??
+                {};
+            await repo.setProfile(bookId, {
+                ...prev,
+                [PROFILE_USERS_KEY]: users,
+            });
+            scheduler.schedule();
+        };
+
+        const endpoint: SyncEndpoint = {
             logout: async () => {
-                repo.detach();
+                await repo.detach();
             },
             getUserInfo: repo.getUserInfo,
             getCollaborators: repo.getCollaborators,
@@ -85,25 +117,83 @@ export const GiteeEndpoint: SyncEndpointFactory = {
             },
             createBook: repo.create,
             initBook: repo.init,
+            initAllTables: async (bookId: string) => {
+                await repo.init(bookId);
+            },
             deleteBook,
             inviteForBook,
 
-            batch: async (...args) => {
-                await repo.batch(...args);
-                scheduler.schedule();
+            tableBatch: async <T extends BaseItem>(
+                bookId: string,
+                tableName: string,
+                actions: Action<T>[],
+                overlap?: boolean,
+            ) => {
+                if (tableName === "transactions") {
+                    await repo.batch(
+                        bookId,
+                        actions as Action<Bill>[],
+                        overlap,
+                    );
+                    scheduler.schedule();
+                    return;
+                }
+                if (tableName === "users") {
+                    let users = await readUsersMap(bookId);
+                    for (const a of actions) {
+                        if (a.type === "update") {
+                            users = {
+                                ...users,
+                                [a.id]: a.value as User,
+                            };
+                        } else if (a.type === "delete") {
+                            const id = String(a.value);
+                            users = { ...users };
+                            delete users[id];
+                        }
+                    }
+                    await writeUsersMap(bookId, users);
+                    return;
+                }
+                if (tableName === "accounts") {
+                    return;
+                }
             },
-            getMeta: repo.getMeta,
-            getAllItems: repo.getAllItems,
+
+            tableGetAllItems: async <T extends BaseItem>(
+                bookId: string,
+                tableName: string,
+            ) => {
+                if (tableName === "transactions") {
+                    return (await repo.getAllItems(bookId)) as Full<T>[];
+                }
+                if (tableName === "users") {
+                    const users = await readUsersMap(bookId);
+                    return Object.values(users) as Full<T>[];
+                }
+                if (tableName === "accounts") {
+                    return [];
+                }
+                return [];
+            },
+
             onChange: repo.onChange,
 
             getIsNeedSync: repo.hasStashes,
             onSync: scheduler.onProcess.bind(scheduler),
-            toSync: scheduler.schedule.bind(scheduler),
+            toSync: async () => {
+                scheduler.schedule();
+            },
 
             forceNeedSync: repo.forceNeedSync,
 
             getProfile: repo.getProfile,
-            setProfile: repo.setProfile,
+            setProfile: async (bookId: string, data: unknown) => {
+                await repo.setProfile(bookId, data);
+                scheduler.schedule();
+            },
         };
+
+        return endpoint;
     },
 };
