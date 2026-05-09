@@ -1,13 +1,22 @@
 import { resolve } from "node:path";
-import tailwindcss from "@tailwindcss/vite";
+import { VantResolver } from "@vant/auto-import-resolver";
 import vue from "@vitejs/plugin-vue";
+import Components from "unplugin-vue-components/vite";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
     plugins: [
         vue(),
-        tailwindcss(),
+        Components({
+            resolvers: [
+                VantResolver({
+                    /* 全量样式在 main.ts 引入，避免与按需样式重复 */
+                    importStyle: false,
+                }),
+            ],
+            dts: "src/components.d.ts",
+        }),
         VitePWA({
             registerType: "autoUpdate",
             manifest: {

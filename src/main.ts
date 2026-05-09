@@ -3,8 +3,9 @@ import zhCN from "vant/es/locale/lang/zh-CN";
 import { createApp } from "vue";
 import App from "./App.vue";
 import router from "./router";
-import "vant/lib/index.css";
+/* 全局样式先于 Vant，避免覆盖顺序异常 */
 import "./index.css";
+import "vant/lib/index.css";
 
 Locale.use("zh-CN", zhCN);
 

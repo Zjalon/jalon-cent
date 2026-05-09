@@ -27,7 +27,7 @@ No test suite exists yet. Pre-commit hooks (Husky) run `pnpm lint` and commitlin
 
 ### Tech Stack
 
-Vue 3 + TypeScript + Vite 8 + Tailwind CSS 4 + Vant 4 (mobile UI library) + vue-router + vite-plugin-pwa
+Vue 3 + TypeScript + Vite 8 + Vant 4 (mobile UI library) + vue-router + vite-plugin-pwa
 
 ### Routing (`src/router/index.ts`)
 

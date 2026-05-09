@@ -1,10 +1,6 @@
-/** biome-ignore-all lint/suspicious/noUnknownAtRules: <explanation> */
-@import "tailwindcss";
-@config "../tailwind.config.mjs";
-
-* {
-	margin: 0;
-	padding: 0;
+*,
+*::before,
+*::after {
 	box-sizing: border-box;
 }
 
@@ -12,6 +8,7 @@ html,
 body {
 	width: 100%;
 	height: 100%;
+	margin: 0;
 	background-color: #ffffff;
 	-webkit-tap-highlight-color: transparent;
 	-webkit-touch-callout: none;
@@ -22,11 +19,21 @@ body {
 	height: 100%;
 	display: flex;
 	flex-direction: column;
-	padding: env(safe-area-inset-top) env(safe-area-inset-right) 0
+	min-height: 0;
+	/* 顶栏由各页 NavBar / MainLayout 自行处理 safe-area-inset-top */
+	padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom)
 		env(safe-area-inset-left);
 }
 
-/* iOS safe area for tabbar */
+/* 路由根节点填满高度，避免 height:100% 在 flex 父级下失效 */
+#app > * {
+	flex: 1;
+	min-height: 0;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+}
+
 :root {
 	--van-tabbar-item-icon-size: 22px;
 }

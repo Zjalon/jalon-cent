@@ -92,6 +92,7 @@ const onSyncClick = async () => {
     align-items: center;
     justify-content: space-between;
     padding: 8px 16px;
+    padding-top: calc(8px + env(safe-area-inset-top, 0px));
     background: #fff;
     border-bottom: 1px solid #ebedf0;
     flex-shrink: 0;

@@ -350,63 +350,20 @@ function YourComponent() {
 
 ## 样式规范
 
-### 1. Tailwind CSS
+### 1. 全局与组件样式
 
-项目使用 Tailwind CSS 进行样式管理，优先使用 Tailwind 工具类。
+- 页面与布局优先使用 Vue **`<style scoped>`**。
+- UI 优先使用 **Vant**；组件由 `vite.config.ts` 中 `unplugin-vue-components` + `VantResolver` 按需解析。
+- 全局样式放在 **`src/index.css`**；勿对全局 `*` 强行清零所有 `margin`/`padding`，以免破坏 Vant 内部排版。
 
-### 2. Settings Item 按钮样式
+### 2. 布局与滚动
 
-所有 Settings Item 的入口按钮应使用统一样式：
+- 主内容区常用 **`flex: 1`**、**`min-height: 0`** 与 **`overflow-y: auto`**，与现有页面 `.page` / `.content` 写法保持一致。
+- 需要分隔列表时，可用 `van-cell-group`、`border` 或独立边框样式，按页面一致即可。
 
-```typescript
-<Button
-    variant="ghost"
-    className="w-full py-4 rounded-none h-auto"
->
-    <div className="w-full px-4 flex justify-between items-center">
-        <div className="flex items-center gap-2">
-            <i className="icon-[mdi--icon-name] size-5"></i>
-            {t("feature-name")}
-        </div>
-        <i className="icon-[mdi--chevron-right] size-5"></i>
-    </div>
-</Button>
-```
+### 3. 图标
 
-### 3. 布局规范
-
-- **列表分隔**：使用 `divide-y divide-solid` 创建分隔线
-- **滚动容器**：使用 `overflow-y-auto` 和 `flex-1` 实现滚动
-- **间距**：使用 Tailwind 的 spacing 工具类（`px-4`, `py-2` 等）
-
-```typescript
-<div className="flex-1 overflow-y-auto flex flex-col divide-y pb-4">
-    {/* 列表项 */}
-</div>
-```
-
-### 4. 图标使用
-
-项目使用 Material Design Icons，通过 `icon-[mdi--icon-name]` 类名使用：
-
-```typescript
-<i className="icon-[mdi--account-supervisor-outline] size-5"></i>
-```
-
-常用图标：
-- `mdi--chevron-right` - 右箭头
-- `mdi--settings` - 设置
-- `mdi--flask` - 实验性功能
-- `mdi--theme-light-dark` - 主题
-- `mdi--language` - 语言
-
-### 5. 响应式设计
-
-使用 Tailwind 的响应式前缀（`sm:`, `md:`, `lg:` 等）：
-
-```typescript
-className="rounded-none sm:rounded-md sm:max-h-[55vh] sm:w-[90vw] sm:max-w-[500px]"
-```
+- 导航与按钮图标优先使用 **Vant Icon**（如 `<van-icon name="..." />`），与现有页面保持一致。
 
 ---
 

@@ -63,7 +63,7 @@ onMounted(async () => {
 
 <template>
     <div class="book-select-page">
-        <van-nav-bar title="选择账本" />
+        <van-nav-bar title="选择账本" safe-area-inset-top :border="false" />
         <div class="content">
             <van-empty v-if="loading" description="正在加载账本..." />
 
@@ -118,8 +118,9 @@ onMounted(async () => {
 
 <style scoped>
 .book-select-page {
+    flex: 1;
+    min-height: 0;
     width: 100%;
-    height: 100%;
     display: flex;
     flex-direction: column;
     background: #f7f8fa;

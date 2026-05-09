@@ -16,7 +16,7 @@
 			"!.*",
 			"!src/locale/lang/**/*.json",
 			"!**/*.config.js",
-			"!components.d.ts"
+			"!**/components.d.ts"
 		]
 	},
 	"formatter": {
