@@ -1,11 +1,14 @@
 <script setup lang="ts">
+import { showToast } from "vant";
 import { ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useEntryBookSync } from "@/composables/use-entry-book-sync";
 import { useSyncStatus } from "@/composables/use-sync-status";
 
 const router = useRouter();
 const route = useRoute();
 const active = ref(0);
+const { entryReady } = useEntryBookSync();
 const { syncing, pending, triggerSync } = useSyncStatus();
 
 const tabs = [
@@ -29,8 +32,15 @@ watch(
     { immediate: true },
 );
 
-const onChange = (index: number) => {
+const goTab = (index: number) => {
     router.push(tabs[index].path);
+};
+
+const onRecordClick = () => {
+    showToast({
+        message: "记一笔（收支）即将上线",
+        duration: 2000,
+    });
 };
 
 const onSyncClick = async () => {
@@ -40,41 +50,81 @@ const onSyncClick = async () => {
 
 <template>
     <div class="layout-container">
-        <header class="header">
-            <span class="header-title">Cent</span>
-            <div class="sync-icon" @click="onSyncClick">
-                <van-loading v-if="syncing" type="spinner" size="18" />
+        <header v-show="entryReady" class="header">
+            <div class="header-brand">
+                <span class="header-title">Cent</span>
+                <span class="header-lede">家庭账本</span>
+            </div>
+            <button
+                type="button"
+                class="header-sync"
+                aria-label="同步状态，点击同步"
+                @click="onSyncClick"
+            >
+                <van-loading
+                    v-if="syncing"
+                    type="spinner"
+                    size="18"
+                    color="#2d6a4f"
+                />
                 <van-icon
                     v-else-if="pending"
                     name="clock-o"
-                    color="#ff976a"
-                    size="20"
+                    class="header-sync__icon header-sync__icon--pending"
                 />
                 <van-icon
                     v-else
                     name="passed"
-                    color="#07c160"
-                    size="20"
-                    style="opacity: 0.5"
+                    class="header-sync__icon header-sync__icon--idle"
                 />
-            </div>
+            </button>
         </header>
         <div class="main">
-            <router-view />
+            <div v-if="!entryReady" class="main-entry-loading">
+                <van-loading vertical size="36px">正在同步账本…</van-loading>
+            </div>
+            <router-view v-else />
         </div>
-        <van-tabbar
-            v-model="active"
-            safe-area-inset-bottom
-            @change="onChange"
-        >
-            <van-tabbar-item
-                v-for="tab in tabs"
-                :key="tab.path"
-                :icon="tab.icon"
+        <nav v-show="entryReady" class="app-tabbar" aria-label="主导航">
+            <div class="app-tabbar__surface">
+                <button
+                    v-for="(tab, i) in tabs.slice(0, 2)"
+                    :key="tab.path"
+                    type="button"
+                    class="app-tab"
+                    :class="{ 'app-tab--active': active === i }"
+                    @click="goTab(i)"
+                >
+                    <van-icon :name="tab.icon" class="app-tab__icon" />
+                    <span class="app-tab__label">{{ tab.label }}</span>
+                </button>
+
+                <div class="app-tabbar__mid-spacer" aria-hidden="true" />
+
+                <button
+                    v-for="(tab, j) in tabs.slice(2, 4)"
+                    :key="tab.path"
+                    type="button"
+                    class="app-tab"
+                    :class="{ 'app-tab--active': active === j + 2 }"
+                    @click="goTab(j + 2)"
+                >
+                    <van-icon :name="tab.icon" class="app-tab__icon" />
+                    <span class="app-tab__label">{{ tab.label }}</span>
+                </button>
+            </div>
+
+            <button
+                type="button"
+                class="app-record"
+                aria-label="记一笔"
+                @click="onRecordClick"
             >
-                {{ tab.label }}
-            </van-tabbar-item>
-        </van-tabbar>
+                <span class="app-record__orb" aria-hidden="true">
+                    <van-icon name="plus" class="app-record__plus" />
+                </span>
+            </button>
+        </nav>
     </div>
 </template>
 
@@ -85,29 +135,94 @@ const onSyncClick = async () => {
     min-height: 0;
     display: flex;
     flex-direction: column;
-    background: #f7f8fa;
+    background: #faf6f0;
 }
 .header {
+    --header-ink: #1c1917;
+    --header-muted: #78716c;
+    --header-accent: #2d6a4f;
+    --header-paper: rgba(255, 254, 251, 0.88);
+
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 16px;
-    padding-top: calc(8px + env(safe-area-inset-top, 0px));
-    background: #fff;
-    border-bottom: 1px solid #ebedf0;
+    gap: 12px;
+    padding: 10px 18px;
+    padding-top: calc(10px + env(safe-area-inset-top, 0px));
     flex-shrink: 0;
+    background: linear-gradient(
+        180deg,
+        var(--header-paper) 0%,
+        rgba(250, 246, 240, 0.96) 100%
+    );
+    border-bottom: 1px solid rgba(45, 106, 79, 0.09);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.65) inset,
+        0 10px 28px -18px rgba(28, 25, 23, 0.07);
 }
+
+.header-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
+}
+
 .header-title {
-    font-size: 18px;
-    font-weight: 700;
-    color: #323233;
+    font-family: "Instrument Serif", Georgia, serif;
+    font-size: clamp(1.35rem, 4.2vw, 1.55rem);
+    font-weight: 400;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--header-ink);
 }
-.sync-icon {
+
+.header-lede {
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--header-accent);
+    opacity: 0.85;
+}
+
+.header-sync {
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 40px;
-    min-height: 40px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid rgba(45, 106, 79, 0.14);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.55);
+    box-shadow: 0 2px 10px rgba(45, 106, 79, 0.06);
+    cursor: pointer;
+    transition:
+        background 0.2s ease,
+        transform 0.15s ease,
+        box-shadow 0.2s ease;
+}
+
+.header-sync:active {
+    transform: scale(0.96);
+    background: rgba(255, 255, 255, 0.75);
+}
+
+.header-sync__icon {
+    font-size: 20px;
+}
+
+.header-sync__icon--pending {
+    color: #c2410c;
+}
+
+.header-sync__icon--idle {
+    color: var(--header-accent);
+    opacity: 0.55;
 }
 .main {
     flex: 1;
@@ -115,5 +230,124 @@ const onSyncClick = async () => {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+}
+.main-entry-loading {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    padding: 24px;
+    background: #faf6f0;
+}
+
+.app-tabbar {
+    position: relative;
+    flex-shrink: 0;
+    z-index: 10;
+    --tabbar-accent: #2d6a4f;
+    --tabbar-ink: #57534e;
+    --tabbar-paper: rgba(255, 254, 251, 0.97);
+    --tabbar-row-h: 52px;
+}
+
+.app-tabbar__surface {
+    display: grid;
+    grid-template-columns: 1fr 1fr 56px 1fr 1fr;
+    align-items: center;
+    gap: 0;
+    box-sizing: border-box;
+    min-height: calc(var(--tabbar-row-h) + env(safe-area-inset-bottom, 0px));
+    padding: 8px 8px env(safe-area-inset-bottom, 0px);
+    background: var(--tabbar-paper);
+    border-top: 1px solid rgba(45, 106, 79, 0.1);
+    box-shadow:
+        0 -10px 32px rgba(28, 25, 23, 0.05),
+        0 -1px 0 rgba(255, 255, 255, 0.92) inset;
+}
+
+.app-tabbar__mid-spacer {
+    width: 56px;
+    height: 1px;
+    pointer-events: none;
+    visibility: hidden;
+}
+
+.app-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: var(--tabbar-row-h);
+    padding: 0 4px;
+    border: none;
+    background: transparent;
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    color: var(--tabbar-ink);
+    opacity: 0.72;
+    cursor: pointer;
+    transition:
+        opacity 0.18s ease,
+        color 0.18s ease;
+}
+
+.app-tab--active {
+    opacity: 1;
+    color: var(--tabbar-accent);
+}
+
+.app-tab__icon {
+    font-size: 22px;
+}
+
+.app-tab__label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+}
+
+.app-record {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.app-record__orb {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    background: linear-gradient(
+        165deg,
+        var(--tabbar-accent) 0%,
+        #1b4332 100%
+    );
+    box-shadow:
+        0 8px 22px rgba(45, 106, 79, 0.38),
+        0 1px 0 rgba(255, 255, 255, 0.22) inset;
+    transform: translateY(-50%);
+    transition: transform 0.18s ease;
+}
+
+.app-record:active .app-record__orb {
+    transform: translateY(-50%) scale(0.94);
+}
+
+.app-record__plus {
+    font-size: 24px;
+    font-weight: 600;
 }
 </style>

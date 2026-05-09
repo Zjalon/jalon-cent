@@ -28,5 +28,10 @@ export function useSync() {
         selectedBookId.value = bookId;
     };
 
-    return { ep, books, selectedBookId, selectBook };
+    const clearSelectedBook = () => {
+        localStorage.removeItem(BOOK_KEY);
+        selectedBookId.value = "";
+    };
+
+    return { ep, books, selectedBookId, selectBook, clearSelectedBook };
 }

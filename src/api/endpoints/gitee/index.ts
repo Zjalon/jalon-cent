@@ -2,9 +2,14 @@ import type { Modal } from "@/components/modal";
 import { Scheduler } from "@/database/scheduler";
 import type { Action, BaseItem, Full } from "@/database/stash";
 import { BillIndexedDBStorage } from "@/database/storage";
+import type { Account } from "@/database/tables/account";
 import type { User } from "@/database/tables/user";
 import { t } from "@/i18n";
 import type { Bill } from "@/ledger/type";
+import {
+    PROFILE_ACCOUNTS_KEY,
+    PROFILE_USERS_KEY,
+} from "@/sync/book-remote-layout";
 import { createTidal } from "@/tidal";
 import { createGiteeSyncer } from "@/tidal/gitee";
 import type { SyncEndpoint, SyncEndpointFactory } from "../type";
@@ -17,8 +22,6 @@ const config = {
 };
 
 export const LoginAPI = createLoginAPI();
-
-const PROFILE_USERS_KEY = "centUsers";
 
 const manuallyLogin = async ({ modal }: { modal: Modal }) => {
     const token = await modal.prompt({
@@ -89,6 +92,18 @@ export const GiteeEndpoint: SyncEndpointFactory = {
             return {};
         };
 
+        const readAccountsList = async (bookId: string): Promise<Account[]> => {
+            const profile = (await repo.getProfile(bookId)) as Record<
+                string,
+                unknown
+            > | null;
+            const raw = profile?.[PROFILE_ACCOUNTS_KEY];
+            if (Array.isArray(raw)) {
+                return raw as Account[];
+            }
+            return [];
+        };
+
         const writeUsersMap = async (
             bookId: string,
             users: Record<string, User>,
@@ -99,6 +114,20 @@ export const GiteeEndpoint: SyncEndpointFactory = {
             await repo.setProfile(bookId, {
                 ...prev,
                 [PROFILE_USERS_KEY]: users,
+            });
+            scheduler.schedule();
+        };
+
+        const writeAccountsList = async (
+            bookId: string,
+            accounts: Account[],
+        ) => {
+            const prev =
+                ((await repo.getProfile(bookId)) as Record<string, unknown>) ??
+                {};
+            await repo.setProfile(bookId, {
+                ...prev,
+                [PROFILE_ACCOUNTS_KEY]: accounts,
             });
             scheduler.schedule();
         };
@@ -156,6 +185,25 @@ export const GiteeEndpoint: SyncEndpointFactory = {
                     return;
                 }
                 if (tableName === "accounts") {
+                    const list = [...(await readAccountsList(bookId))];
+                    for (const a of actions) {
+                        if (a.type === "update") {
+                            const val = a.value as Account;
+                            const idx = list.findIndex((x) => x.id === val.id);
+                            if (idx >= 0) {
+                                list[idx] = val;
+                            } else {
+                                list.push(val);
+                            }
+                        } else if (a.type === "delete") {
+                            const id = String(a.value);
+                            const i = list.findIndex((x) => x.id === id);
+                            if (i >= 0) {
+                                list.splice(i, 1);
+                            }
+                        }
+                    }
+                    await writeAccountsList(bookId, list);
                     return;
                 }
             },
@@ -172,7 +220,7 @@ export const GiteeEndpoint: SyncEndpointFactory = {
                     return Object.values(users) as Full<T>[];
                 }
                 if (tableName === "accounts") {
-                    return [];
+                    return (await readAccountsList(bookId)) as Full<T>[];
                 }
                 return [];
             },

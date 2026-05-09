@@ -2,6 +2,7 @@ import { decode, encode } from "js-base64";
 import type { UserInfo } from "@/api/endpoints/type";
 import type { FileEntry } from "@/database/assets";
 import { shortId } from "@/database/id";
+import { createInitialBookProfile } from "@/sync/book-remote-layout";
 import type {
     AssetKey,
     FileLike,
@@ -45,6 +46,44 @@ export const createGiteeSyncer = (config: {
         });
     }
 
+    const chunkPathPriority = (path: string) => {
+        const name = pathToName(path);
+        if (name.startsWith("ledger-")) {
+            return 2;
+        }
+        if (name.startsWith("entry-")) {
+            return 1;
+        }
+        return 0;
+    };
+
+    /** 兼容旧仓库 entry-* 与当前 ledger-* 两种分片前缀 */
+    const parseLedgerChunkIndex = (
+        path: string,
+        entryNameLocal: string,
+    ): number | null => {
+        const name = pathToName(path);
+        if (!name.endsWith(".json")) {
+            return null;
+        }
+        const prefixes =
+            entryNameLocal === "ledger"
+                ? ["ledger", "entry"]
+                : [entryNameLocal];
+        for (const prefix of prefixes) {
+            if (!name.startsWith(`${prefix}-`)) {
+                continue;
+            }
+            const n = Number(
+                name.replace(`${prefix}-`, "").replace(/\.json$/i, ""),
+            );
+            if (!Number.isNaN(n)) {
+                return n;
+            }
+        }
+        return null;
+    };
+
     const treeDateToStructure = (
         tree: {
             path: string;
@@ -64,16 +103,14 @@ export const createGiteeSyncer = (config: {
                     p.profile = c;
                 } else if (c.path.startsWith("assets/")) {
                     p.assets.push(c);
-                } else if (
-                    c.path.startsWith(`${entryNameLocal}-`) &&
-                    c.path.endsWith(`.json`)
-                ) {
-                    const startIndex = Number(
-                        c.path
-                            .replace(`${entryNameLocal}-`, "")
-                            .replace(".json", ""),
+                } else {
+                    const startIndex = parseLedgerChunkIndex(
+                        c.path,
+                        entryNameLocal,
                     );
-                    p.chunks.push({ ...c, startIndex });
+                    if (startIndex !== null) {
+                        p.chunks.push({ ...c, startIndex });
+                    }
                 }
                 return p;
             },
@@ -84,15 +121,52 @@ export const createGiteeSyncer = (config: {
             } as StoreStructure,
         );
 
-        // 按照startIndex数字顺序对chunks进行排序
-        // Gitee API返回的是字典序（entry-1000, entry-10000, entry-2000）
-        // 需要按数字排序（entry-1000, entry-2000, entry-10000）
-        structure.chunks.sort((a, b) => a.startIndex - b.startIndex);
+        const byIndex = new Map<number, (typeof structure.chunks)[number]>();
+        for (const ch of structure.chunks) {
+            const prev = byIndex.get(ch.startIndex);
+            if (
+                !prev ||
+                chunkPathPriority(ch.path) > chunkPathPriority(prev.path)
+            ) {
+                byIndex.set(ch.startIndex, ch);
+            }
+        }
+        structure.chunks = Array.from(byIndex.values()).sort(
+            (a, b) => a.startIndex - b.startIndex,
+        );
 
         // 对assets按路径排序，保持一致性
         structure.assets.sort((a, b) => a.path.localeCompare(b.path));
 
         return structure;
+    };
+
+    const parseRepoJsonFile = (
+        filePath: string,
+        base64: string | null | undefined,
+    ): unknown => {
+        const name = pathToName(filePath);
+        const fallback = (): unknown => {
+            if (name === "meta.json" || name === "profile.json") {
+                return {};
+            }
+            if (/^(ledger|entry)-/i.test(name) && name.endsWith(".json")) {
+                return [];
+            }
+            return {};
+        };
+        if (base64 === undefined || base64 === null || base64 === "") {
+            return fallback();
+        }
+        try {
+            const text = decode(base64).trim();
+            if (!text) {
+                return fallback();
+            }
+            return JSON.parse(text);
+        } catch {
+            return fallback();
+        }
     };
 
     // generic helper to call gitee API with token
@@ -225,7 +299,7 @@ export const createGiteeSyncer = (config: {
                 } as FileWithContent;
             }
             const data = await res.json();
-            const content = JSON.parse(decode(data.content));
+            const content = parseRepoJsonFile(f.path, data.content);
             return { path: f.path, sha: f.sha, content } as FileWithContent;
         });
 
@@ -365,7 +439,7 @@ export const createGiteeSyncer = (config: {
         return v.formattedValue.split(`master/`)[1];
     };
 
-    // createStore: create gitee repo and add meta.json
+    // createStore: create gitee repo and seed meta.json + profile.json（与 users / accounts / transactions 表布局一致）
     const createStore = async (name: string) => {
         // get current user
         const me = await giteeRequest<any>("GET", `/user`);
@@ -380,29 +454,39 @@ export const createGiteeSyncer = (config: {
             auto_init: true,
         });
 
-        // create meta.json
         const { accessToken } = await auth();
-        const path = `/repos/${owner}/${storeName}/contents/meta.json`;
+
+        const postRootJson = async (filename: string, data: unknown) => {
+            const path = `/repos/${owner}/${storeName}/contents/${filename}`;
+            const res = await fetch(`${GITEE_API_BASE}${path}`, {
+                method: "POST",
+                headers: {
+                    Authorization: `token ${accessToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    message: "Initial commit by Giteeray",
+                    content: encode(JSON.stringify(data)),
+                    branch: "master",
+                }),
+            });
+            if (!res.ok) {
+                const txt = await res.text();
+                throw new Error(
+                    `Gitee create ${filename} failed: ${res.status} ${txt}`,
+                );
+            }
+        };
+
         let retries = 3;
         while (retries > 0) {
             try {
-                await fetch(`${GITEE_API_BASE}${path}`, {
-                    method: "POST",
-                    headers: {
-                        Authorization: `token ${accessToken}`,
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        message: "Initial commit by Giteeray",
-                        content: encode(JSON.stringify({})),
-                        branch: "master",
-                    }),
-                });
-                break; // 成功则跳出循环
+                await postRootJson("meta.json", {});
+                await postRootJson("profile.json", createInitialBookProfile());
+                break;
             } catch (error) {
                 retries--;
                 if (retries === 0) throw error;
-                // 等待一段时间再重试（例如 1秒、2秒、4秒...）
                 await new Promise((res) =>
                     setTimeout(res, 1000 * (2 - retries)),
                 );

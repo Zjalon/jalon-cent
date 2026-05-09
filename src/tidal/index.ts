@@ -10,6 +10,11 @@ import {
     StashBucket,
     type StashStorage,
 } from "@/database/stash";
+import {
+    chunkContentToActions,
+    normalizeMetaSnapshot,
+    normalizeProfileSnapshot,
+} from "@/sync/migrate-remote";
 
 export type AssetKey = string;
 
@@ -206,17 +211,22 @@ export const createTidal = <Item extends BaseItem>({
         const { itemBucket } = getStore(storeFullName);
 
         const { detail, remote, patch } = await fetchStoreDetail(storeFullName);
-        const remoteItems = detail.chunks.flatMap((v) => v.content);
+        const remoteItems = detail.chunks.flatMap((v) =>
+            chunkContentToActions<Item>(v.content),
+        );
+        const normalizedMeta = normalizeMetaSnapshot(detail.meta?.content);
         if (patch) {
-            await itemBucket.patch(remoteItems, detail.meta?.content);
+            await itemBucket.patch(remoteItems, normalizedMeta);
         } else {
-            await itemBucket.init(remoteItems, detail.meta?.content);
+            await itemBucket.init(remoteItems, normalizedMeta);
         }
         const config = (await itemBucket.configStorage.getValue()) ?? {};
         await itemBucket.configStorage.setValue({
             ...config,
             structure: remote,
-            profileData: detail.profile?.content ?? config.profileData,
+            profileData: normalizeProfileSnapshot(
+                detail.profile?.content ?? config.profileData ?? {},
+            ),
         });
         notifyChange(storeFullName);
     };
