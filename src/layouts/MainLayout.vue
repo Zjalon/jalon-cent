@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { showToast } from "vant";
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import RecordTransactionSheet from "@/components/RecordTransactionSheet.vue";
 import { useEntryBookSync } from "@/composables/use-entry-book-sync";
 import { useSyncStatus } from "@/composables/use-sync-status";
 
@@ -10,6 +10,11 @@ const route = useRoute();
 const active = ref(0);
 const { entryReady } = useEntryBookSync();
 const { syncing, pending, triggerSync } = useSyncStatus();
+
+const showRecordSheet = ref(false);
+
+/** 分类设置页自带 van-nav-bar，隐藏外壳顶栏避免双层遮挡 */
+const hideShellHeader = computed(() => route.name === "profile-categories");
 
 const tabs = [
     { path: "/", icon: "records", label: "账本" },
@@ -20,7 +25,10 @@ const tabs = [
 
 const syncIndex = (path: string) => {
     const normalized = path === "/" ? "/" : path.replace(/\/$/, "") || "/";
-    const idx = tabs.findIndex((t) => t.path === normalized);
+    let idx = tabs.findIndex((t) => t.path === normalized);
+    if (idx < 0 && normalized.startsWith("/profile")) {
+        idx = 3;
+    }
     if (idx >= 0) {
         active.value = idx;
     }
@@ -37,10 +45,7 @@ const goTab = (index: number) => {
 };
 
 const onRecordClick = () => {
-    showToast({
-        message: "记一笔（收支）即将上线",
-        duration: 2000,
-    });
+    showRecordSheet.value = true;
 };
 
 const onSyncClick = async () => {
@@ -50,7 +55,7 @@ const onSyncClick = async () => {
 
 <template>
     <div class="layout-container">
-        <header v-show="entryReady" class="header">
+        <header v-show="entryReady && !hideShellHeader" class="header">
             <div class="header-brand">
                 <span class="header-title">Cent</span>
                 <span class="header-lede">家庭账本</span>
@@ -65,7 +70,7 @@ const onSyncClick = async () => {
                     v-if="syncing"
                     type="spinner"
                     size="18"
-                    color="#2d6a4f"
+                    color="var(--cent-accent)"
                 />
                 <van-icon
                     v-else-if="pending"
@@ -125,6 +130,8 @@ const onSyncClick = async () => {
                 </span>
             </button>
         </nav>
+
+        <RecordTransactionSheet v-model:show="showRecordSheet" />
     </div>
 </template>
 
@@ -135,12 +142,12 @@ const onSyncClick = async () => {
     min-height: 0;
     display: flex;
     flex-direction: column;
-    background: #faf6f0;
+    background: var(--cent-paper);
 }
 .header {
-    --header-ink: #1c1917;
-    --header-muted: #78716c;
-    --header-accent: #2d6a4f;
+    --header-ink: var(--cent-ink);
+    --header-muted: var(--cent-ink-subtle);
+    --header-accent: var(--cent-accent);
     --header-paper: rgba(255, 254, 251, 0.88);
 
     display: flex;
@@ -155,7 +162,7 @@ const onSyncClick = async () => {
         var(--header-paper) 0%,
         rgba(250, 246, 240, 0.96) 100%
     );
-    border-bottom: 1px solid rgba(45, 106, 79, 0.09);
+    border-bottom: 1px solid rgba(var(--cent-accent-rgb), 0.09);
     box-shadow:
         0 1px 0 rgba(255, 255, 255, 0.65) inset,
         0 10px 28px -18px rgba(28, 25, 23, 0.07);
@@ -179,7 +186,7 @@ const onSyncClick = async () => {
 }
 
 .header-lede {
-    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    font-family: var(--cent-font-ui);
     font-size: 10px;
     font-weight: 600;
     letter-spacing: 0.22em;
@@ -196,10 +203,10 @@ const onSyncClick = async () => {
     width: 44px;
     height: 44px;
     padding: 0;
-    border: 1px solid rgba(45, 106, 79, 0.14);
+    border: 1px solid rgba(var(--cent-accent-rgb), 0.14);
     border-radius: 14px;
     background: rgba(255, 255, 255, 0.55);
-    box-shadow: 0 2px 10px rgba(45, 106, 79, 0.06);
+    box-shadow: 0 2px 10px rgba(var(--cent-accent-rgb), 0.06);
     cursor: pointer;
     transition:
         background 0.2s ease,
@@ -217,7 +224,7 @@ const onSyncClick = async () => {
 }
 
 .header-sync__icon--pending {
-    color: #c2410c;
+    color: var(--cent-warm);
 }
 
 .header-sync__icon--idle {
@@ -238,15 +245,15 @@ const onSyncClick = async () => {
     justify-content: center;
     min-height: 0;
     padding: 24px;
-    background: #faf6f0;
+    background: var(--cent-paper);
 }
 
 .app-tabbar {
     position: relative;
     flex-shrink: 0;
     z-index: 10;
-    --tabbar-accent: #2d6a4f;
-    --tabbar-ink: #57534e;
+    --tabbar-accent: var(--cent-accent);
+    --tabbar-ink: var(--cent-ink-muted);
     --tabbar-paper: rgba(255, 254, 251, 0.97);
     --tabbar-row-h: 52px;
 }
@@ -260,7 +267,7 @@ const onSyncClick = async () => {
     min-height: calc(var(--tabbar-row-h) + env(safe-area-inset-bottom, 0px));
     padding: 8px 8px env(safe-area-inset-bottom, 0px);
     background: var(--tabbar-paper);
-    border-top: 1px solid rgba(45, 106, 79, 0.1);
+    border-top: 1px solid rgba(var(--cent-accent-rgb), 0.1);
     box-shadow:
         0 -10px 32px rgba(28, 25, 23, 0.05),
         0 -1px 0 rgba(255, 255, 255, 0.92) inset;
@@ -283,7 +290,7 @@ const onSyncClick = async () => {
     padding: 0 4px;
     border: none;
     background: transparent;
-    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    font-family: var(--cent-font-ui);
     color: var(--tabbar-ink);
     opacity: 0.72;
     cursor: pointer;
@@ -333,10 +340,10 @@ const onSyncClick = async () => {
     background: linear-gradient(
         165deg,
         var(--tabbar-accent) 0%,
-        #1b4332 100%
+        var(--cent-accent-deep) 100%
     );
     box-shadow:
-        0 8px 22px rgba(45, 106, 79, 0.38),
+        0 8px 22px rgba(var(--cent-accent-rgb), 0.38),
         0 1px 0 rgba(255, 255, 255, 0.22) inset;
     transform: translateY(-50%);
     transition: transform 0.18s ease;

@@ -50,6 +50,13 @@ export type SyncEndpoint = {
 
     getProfile: (bookId: string) => Promise<any>;
     setProfile: (bookId: string, data: any) => Promise<void>;
+
+    /** ledger meta.json（分类标签等），与账单一并同步到 Git */
+    getLedgerMeta: (bookId: string) => Promise<Record<string, unknown>>;
+    patchLedgerMeta: (
+        bookId: string,
+        patch: Record<string, unknown>,
+    ) => Promise<void>;
 };
 
 export type SyncEndpointFactory = {

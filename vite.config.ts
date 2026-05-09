@@ -23,8 +23,8 @@ export default defineConfig({
                 name: "Cent",
                 short_name: "Cent",
                 description: "Cent",
-                theme_color: "#ffffff",
-                background_color: "#ffffff",
+                theme_color: "#faf6f0",
+                background_color: "#faf6f0",
                 display: "standalone",
                 start_url: "/",
                 icons: [

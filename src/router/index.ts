@@ -40,6 +40,11 @@ const router = createRouter({
                     name: "profile",
                     component: () => import("../pages/Profile.vue"),
                 },
+                {
+                    path: "profile/categories/:kind",
+                    name: "profile-categories",
+                    component: () => import("../pages/CategoryManage.vue"),
+                },
             ],
         },
     ],

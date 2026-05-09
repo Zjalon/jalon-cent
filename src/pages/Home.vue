@@ -2,21 +2,25 @@
 import dayjs from "dayjs";
 import { showToast } from "vant";
 import { computed, onMounted, onUnmounted, ref } from "vue";
+import { buildCategoryLabelMap } from "@/composables/use-ledger-meta";
 import { useSync } from "@/composables/use-sync";
 import type { Full } from "@/database/stash";
 import type { Transaction } from "@/database/tables/transaction";
 import type { User } from "@/database/tables/user";
 import { amountToNumber } from "@/ledger/bill";
-import { BillCategories } from "@/ledger/category";
+import type { BillCategory } from "@/ledger/type";
 
 const { selectedBookId, ep } = useSync();
 
 const bills = ref<Full<Transaction>[]>([]);
 const usersList = ref<User[]>([]);
+const metaCategories = ref<BillCategory[]>([]);
 
 let unsubscribe: (() => void) | undefined;
 
-const CATEGORY_LABEL = new Map(BillCategories.map((c) => [c.id, c.name]));
+const categoryLabelMap = computed(() =>
+    buildCategoryLabelMap(metaCategories.value),
+);
 
 const fmt = new Intl.NumberFormat("zh-CN", {
     style: "currency",
@@ -54,7 +58,7 @@ const todayIncomeLabel = computed(() =>
 );
 
 function purposeLine(tx: Full<Transaction>): string {
-    const cat = CATEGORY_LABEL.get(tx.categoryId) ?? tx.categoryId;
+    const cat = categoryLabelMap.value.get(tx.categoryId) ?? tx.categoryId;
     const comment = tx.comment?.trim();
     if (tx.type === "transfer") {
         return comment ? `转账 · ${comment}` : "转账";
@@ -103,12 +107,16 @@ function rowModifier(tx: Full<Transaction>): string {
 }
 
 async function refreshData(bookId: string) {
-    const [txs, users] = await Promise.all([
+    const [txs, users, meta] = await Promise.all([
         ep.tableGetAllItems<Transaction>(bookId, "transactions"),
         ep.tableGetAllItems<User>(bookId, "users"),
+        ep.getLedgerMeta(bookId),
     ]);
     bills.value = txs;
     usersList.value = users;
+    metaCategories.value = Array.isArray(meta.categories)
+        ? (meta.categories as BillCategory[])
+        : [];
 }
 
 onMounted(async () => {
@@ -217,13 +225,13 @@ onUnmounted(() => {
 
 <style scoped>
 .journal-page {
-    --journal-bg: #faf6f0;
-    --journal-ink: #1c1917;
-    --journal-muted: #57534e;
-    --journal-accent: #2d6a4f;
-    --journal-expense: #9a3412;
-    --journal-income: #166534;
-    --journal-paper: rgba(255, 254, 251, 0.94);
+    --journal-bg: var(--cent-paper);
+    --journal-ink: var(--cent-ink);
+    --journal-muted: var(--cent-ink-muted);
+    --journal-accent: var(--cent-accent);
+    --journal-expense: var(--cent-warm);
+    --journal-income: var(--cent-income);
+    --journal-paper: var(--cent-paper-elevated);
 
     flex: 1;
     min-height: 0;
@@ -233,7 +241,7 @@ onUnmounted(() => {
     display: flex;
     flex-direction: column;
     background: var(--journal-bg);
-    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    font-family: var(--cent-font-ui);
     color: var(--journal-ink);
 }
 
@@ -258,7 +266,7 @@ onUnmounted(() => {
     left: -26%;
     background: radial-gradient(
         circle,
-        rgba(154, 52, 18, 0.14) 0%,
+        rgba(var(--cent-warm-rgb), 0.14) 0%,
         transparent 72%
     );
     animation: journal-float 19s ease-in-out infinite;
@@ -271,7 +279,7 @@ onUnmounted(() => {
     right: -24%;
     background: radial-gradient(
         circle,
-        rgba(45, 106, 79, 0.28) 0%,
+        rgba(var(--cent-accent-rgb), 0.28) 0%,
         transparent 70%
     );
     animation: journal-float 21s ease-in-out infinite reverse;
@@ -315,7 +323,7 @@ onUnmounted(() => {
     background: var(--journal-paper);
     box-shadow:
         0 1px 0 rgba(255, 255, 255, 0.88) inset,
-        0 18px 42px -30px rgba(28, 25, 23, 0.38);
+        0 18px 42px -30px var(--cent-shadow-ink);
     overflow: hidden;
     opacity: 0;
     animation: journal-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
@@ -330,7 +338,7 @@ onUnmounted(() => {
     background: linear-gradient(
         180deg,
         var(--journal-accent) 0%,
-        rgba(154, 52, 18, 0.35) 100%
+        rgba(var(--cent-warm-rgb), 0.35) 100%
     );
     border-radius: 20px 0 0 20px;
 }
@@ -369,7 +377,7 @@ onUnmounted(() => {
 }
 
 .journal-stat__value {
-    font-family: "Instrument Serif", Georgia, serif;
+    font-family: var(--cent-font-display);
     font-size: clamp(1.55rem, 7vw, 2rem);
     font-weight: 400;
     line-height: 1.08;
@@ -425,7 +433,7 @@ onUnmounted(() => {
 
 .journal-empty__title {
     margin: 0 0 8px;
-    font-family: "Instrument Serif", Georgia, serif;
+    font-family: var(--cent-font-display);
     font-size: 1.28rem;
     font-weight: 400;
 }

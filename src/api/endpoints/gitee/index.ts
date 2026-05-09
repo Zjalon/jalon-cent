@@ -10,6 +10,7 @@ import {
     PROFILE_ACCOUNTS_KEY,
     PROFILE_USERS_KEY,
 } from "@/sync/book-remote-layout";
+import { normalizeMetaSnapshot } from "@/sync/migrate-remote";
 import { createTidal } from "@/tidal";
 import { createGiteeSyncer } from "@/tidal/gitee";
 import type { SyncEndpoint, SyncEndpointFactory } from "../type";
@@ -235,6 +236,34 @@ export const GiteeEndpoint: SyncEndpointFactory = {
             getProfile: repo.getProfile,
             setProfile: async (bookId: string, data: unknown) => {
                 await repo.setProfile(bookId, data);
+                scheduler.schedule();
+            },
+
+            getLedgerMeta: async (bookId: string) => {
+                const raw = await repo.getMeta(bookId);
+                return normalizeMetaSnapshot(raw);
+            },
+
+            patchLedgerMeta: async (
+                bookId: string,
+                patch: Record<string, unknown>,
+            ) => {
+                const prev = normalizeMetaSnapshot(await repo.getMeta(bookId));
+                const next = {
+                    ...prev,
+                    ...patch,
+                    tags: Array.isArray(patch.tags)
+                        ? patch.tags
+                        : Array.isArray(prev.tags)
+                          ? prev.tags
+                          : [],
+                };
+                await repo.batch(bookId, [
+                    {
+                        type: "meta",
+                        metaValue: next,
+                    } as Action<Bill>,
+                ]);
                 scheduler.schedule();
             },
         };

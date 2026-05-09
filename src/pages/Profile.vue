@@ -77,8 +77,26 @@ const onLogout = async () => {
             </div>
             <van-cell-group inset>
                 <van-cell title="上次同步成功" :value="lastSyncLabel" />
-                <van-cell title="设置" is-link />
-                <van-cell title="关于" is-link />
+                <van-cell
+                    title="支出分类"
+                    is-link
+                    @click="
+                        router.push({
+                            name: 'profile-categories',
+                            params: { kind: 'expense' },
+                        })
+                    "
+                />
+                <van-cell
+                    title="收入分类"
+                    is-link
+                    @click="
+                        router.push({
+                            name: 'profile-categories',
+                            params: { kind: 'income' },
+                        })
+                    "
+                />
             </van-cell-group>
             <div class="logout-actions">
                 <van-button round block plain type="danger" @click="onLogout">
@@ -110,6 +128,9 @@ const onLogout = async () => {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    font-family: var(--cent-font-ui);
+    color: var(--cent-ink);
+    background: transparent;
 }
 .content {
     flex: 1;
@@ -120,22 +141,34 @@ const onLogout = async () => {
     display: flex;
     align-items: center;
     gap: 16px;
-    padding: 20px 16px;
-    margin: 0 16px 12px;
-    background: #fff;
-    border-radius: 8px;
+    padding: 22px 18px;
+    margin: 0 16px 14px;
+    background: var(--cent-paper-elevated);
+    border-radius: 18px;
+    border: 1px solid rgba(var(--cent-accent-rgb), 0.08);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.82) inset,
+        0 14px 36px -26px var(--cent-shadow-ink);
 }
 .user-info {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    min-width: 0;
 }
 .user-nickname {
-    font-size: 18px;
-    font-weight: 600;
-    color: #323233;
+    font-family: var(--cent-font-display);
+    font-size: 1.35rem;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    color: var(--cent-ink);
 }
 .logout-actions {
     margin: 32px 16px 0;
+}
+.logout-actions :deep(.van-button--danger.van-button--plain) {
+    color: var(--cent-warm);
+    border-color: rgba(var(--cent-warm-rgb), 0.35);
 }
 </style>

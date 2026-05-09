@@ -193,12 +193,12 @@ onMounted(async () => {
 
 <style scoped>
 .pick-page {
-    --pick-bg: #faf6f0;
-    --pick-ink: #1c1917;
-    --pick-muted: #78716c;
-    --pick-accent: #2d6a4f;
-    --pick-accent-soft: rgba(45, 106, 79, 0.12);
-    --pick-paper: rgba(255, 254, 251, 0.94);
+    --pick-bg: var(--cent-paper);
+    --pick-ink: var(--cent-ink);
+    --pick-muted: var(--cent-ink-subtle);
+    --pick-accent: var(--cent-accent);
+    --pick-accent-soft: var(--cent-accent-soft);
+    --pick-paper: var(--cent-paper-elevated);
 
     flex: 1;
     min-height: 0;
@@ -210,7 +210,7 @@ onMounted(async () => {
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
     background: var(--pick-bg);
-    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    font-family: var(--cent-font-ui);
     color: var(--pick-ink);
 }
 
@@ -300,7 +300,7 @@ onMounted(async () => {
 
 .pick-title {
     margin: 0 0 10px;
-    font-family: "Instrument Serif", Georgia, serif;
+    font-family: var(--cent-font-display);
     font-size: clamp(1.85rem, 8vw, 2.35rem);
     font-weight: 400;
     line-height: 1.12;
@@ -442,7 +442,7 @@ onMounted(async () => {
     justify-content: center;
     width: 44px;
     flex-shrink: 0;
-    font-family: "Instrument Serif", serif;
+    font-family: var(--cent-font-display);
     font-size: 17px;
     color: var(--pick-accent);
     background: var(--pick-accent-soft);
@@ -518,7 +518,7 @@ onMounted(async () => {
 
 .pick-empty__title {
     margin: 0 0 8px;
-    font-family: "Instrument Serif", serif;
+    font-family: var(--cent-font-display);
     font-size: 1.35rem;
     font-weight: 400;
     color: var(--pick-ink);
@@ -657,10 +657,7 @@ onMounted(async () => {
     width: min(100vw - 40px, 380px);
     max-width: 380px;
     overflow: hidden;
-    font-family:
-        "Plus Jakarta Sans",
-        system-ui,
-        sans-serif;
+    font-family: var(--cent-font-ui);
     background: linear-gradient(
         165deg,
         rgba(255, 254, 251, 0.98) 0%,
@@ -671,7 +668,7 @@ onMounted(async () => {
     box-shadow:
         0 1px 0 rgba(255, 255, 255, 0.75) inset,
         0 28px 56px -28px rgba(28, 25, 23, 0.35),
-        0 12px 28px -18px rgba(45, 106, 79, 0.15);
+        0 12px 28px -18px rgba(var(--cent-accent-rgb), 0.15);
 }
 
 .pick-dialog.van-dialog::before {
@@ -682,8 +679,8 @@ onMounted(async () => {
     background: linear-gradient(
         90deg,
         #40916c 0%,
-        #2d6a4f 45%,
-        #1b4332 100%
+        var(--cent-accent) 45%,
+        var(--cent-accent-deep) 100%
     );
 }
 
@@ -698,17 +695,17 @@ onMounted(async () => {
     font-weight: 600;
     letter-spacing: 0.28em;
     text-transform: uppercase;
-    color: #2d6a4f;
+    color: var(--cent-accent);
 }
 
 .pick-dialog-title__main {
     margin: 0 0 8px;
-    font-family: "Instrument Serif", Georgia, serif;
+    font-family: var(--cent-font-display);
     font-size: 1.65rem;
     font-weight: 400;
     line-height: 1.15;
     letter-spacing: -0.02em;
-    color: #1c1917;
+    color: var(--cent-ink);
 }
 
 .pick-dialog-title__lede {
@@ -716,7 +713,7 @@ onMounted(async () => {
     font-size: 13px;
     font-weight: 500;
     line-height: 1.5;
-    color: #78716c;
+    color: var(--cent-ink-subtle);
 }
 
 .pick-dialog .van-dialog__content {
@@ -745,7 +742,7 @@ onMounted(async () => {
     font-size: 14px !important;
     background: rgba(255, 255, 255, 0.85) !important;
     border: 1px solid #d6d3d1 !important;
-    color: #57534e !important;
+    color: var(--cent-ink-muted) !important;
 }
 
 .pick-dialog .van-dialog__confirm {
@@ -758,8 +755,12 @@ onMounted(async () => {
     letter-spacing: 0.04em;
     border: none !important;
     color: #fff !important;
-    background: linear-gradient(165deg, #2d6a4f 0%, #1b4332 100%) !important;
-    box-shadow: 0 4px 14px -4px rgba(45, 106, 79, 0.45);
+    background: linear-gradient(
+        165deg,
+        var(--cent-accent) 0%,
+        var(--cent-accent-deep) 100%
+    ) !important;
+    box-shadow: 0 4px 14px -4px rgba(var(--cent-accent-rgb), 0.45);
 }
 
 .pick-dialog .van-dialog__confirm:active {

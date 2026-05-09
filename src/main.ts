@@ -6,6 +6,7 @@ import router from "./router";
 /* 全局样式先于 Vant，避免覆盖顺序异常 */
 import "./index.css";
 import "vant/lib/index.css";
+import "./cent-vant-theme.css";
 
 Locale.use("zh-CN", zhCN);
 

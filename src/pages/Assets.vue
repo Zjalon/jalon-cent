@@ -509,11 +509,11 @@ onUnmounted(() => {
 
 <style scoped>
 .assets-page {
-    --assets-bg: #faf6f0;
-    --assets-ink: #1c1917;
-    --assets-muted: #57534e;
-    --assets-accent: #2d6a4f;
-    --assets-paper: rgba(255, 254, 251, 0.94);
+    --assets-bg: var(--cent-paper);
+    --assets-ink: var(--cent-ink);
+    --assets-muted: var(--cent-ink-muted);
+    --assets-accent: var(--cent-accent);
+    --assets-paper: var(--cent-paper-elevated);
 
     flex: 1;
     min-height: 0;
@@ -523,7 +523,7 @@ onUnmounted(() => {
     display: flex;
     flex-direction: column;
     background: var(--assets-bg);
-    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    font-family: var(--cent-font-ui);
     color: var(--assets-ink);
 }
 
@@ -548,7 +548,7 @@ onUnmounted(() => {
     right: -28%;
     background: radial-gradient(
         circle,
-        rgba(45, 106, 79, 0.35) 0%,
+        rgba(var(--cent-accent-rgb), 0.35) 0%,
         transparent 70%
     );
     animation: assets-float 18s ease-in-out infinite;
@@ -620,7 +620,7 @@ onUnmounted(() => {
     background: linear-gradient(
         180deg,
         var(--assets-accent) 0%,
-        rgba(45, 106, 79, 0.35) 100%
+        rgba(var(--cent-accent-rgb), 0.35) 100%
     );
     border-radius: 20px 0 0 20px;
 }
@@ -649,7 +649,7 @@ onUnmounted(() => {
 
 .assets-total-value {
     margin: 0;
-    font-family: "Instrument Serif", Georgia, serif;
+    font-family: var(--cent-font-display);
     font-size: clamp(2rem, 9vw, 2.65rem);
     font-weight: 400;
     line-height: 1.05;
@@ -692,9 +692,9 @@ onUnmounted(() => {
     background: linear-gradient(
         165deg,
         var(--assets-accent) 0%,
-        #1b4332 100%
+        var(--cent-accent-deep) 100%
     );
-    box-shadow: 0 3px 12px -4px rgba(45, 106, 79, 0.45);
+    box-shadow: 0 3px 12px -4px rgba(var(--cent-accent-rgb), 0.45);
 }
 
 .assets-add-inline:active {
@@ -744,7 +744,7 @@ onUnmounted(() => {
     background: linear-gradient(
         165deg,
         var(--assets-accent) 0%,
-        #1b4332 100%
+        var(--cent-accent-deep) 100%
     ) !important;
     border: none !important;
 }
@@ -763,7 +763,7 @@ onUnmounted(() => {
     font: inherit;
     color: inherit;
     background: var(--assets-paper);
-    border: 1px solid rgba(45, 106, 79, 0.08);
+    border: 1px solid rgba(var(--cent-accent-rgb), 0.08);
     box-shadow: 0 10px 28px -22px rgba(28, 25, 23, 0.45);
 }
 
@@ -841,7 +841,7 @@ onUnmounted(() => {
 .assets-empty__glyph {
     display: block;
     margin-bottom: 12px;
-    font-family: "Instrument Serif", Georgia, serif;
+    font-family: var(--cent-font-display);
     font-size: 28px;
     color: var(--assets-accent);
     opacity: 0.55;
@@ -849,7 +849,7 @@ onUnmounted(() => {
 
 .assets-empty__title {
     margin: 0 0 8px;
-    font-family: "Instrument Serif", Georgia, serif;
+    font-family: var(--cent-font-display);
     font-size: 1.35rem;
     font-weight: 400;
 }
@@ -875,9 +875,9 @@ onUnmounted(() => {
     background: linear-gradient(
         165deg,
         var(--assets-accent) 0%,
-        #1b4332 100%
+        var(--cent-accent-deep) 100%
     );
-    box-shadow: 0 4px 14px -4px rgba(45, 106, 79, 0.45);
+    box-shadow: 0 4px 14px -4px rgba(var(--cent-accent-rgb), 0.45);
 }
 
 .balance-sheet {
@@ -886,7 +886,7 @@ onUnmounted(() => {
 
 .balance-sheet__title {
     margin: 6px 0 8px;
-    font-family: "Instrument Serif", Georgia, serif;
+    font-family: var(--cent-font-display);
     font-size: 1.4rem;
     font-weight: 400;
     text-align: center;
@@ -919,7 +919,7 @@ onUnmounted(() => {
 
 .form-sheet__title {
     margin: 8px 0 18px;
-    font-family: "Instrument Serif", Georgia, serif;
+    font-family: var(--cent-font-display);
     font-size: 1.45rem;
     font-weight: 400;
     text-align: center;
@@ -973,7 +973,7 @@ onUnmounted(() => {
 .form-icon-chip {
     padding: 8px 12px;
     border-radius: 999px;
-    border: 1px solid rgba(45, 106, 79, 0.2);
+    border: 1px solid rgba(var(--cent-accent-rgb), 0.2);
     background: rgba(255, 254, 251, 0.9);
     font-family: inherit;
     font-size: 12px;
@@ -985,7 +985,7 @@ onUnmounted(() => {
 .form-icon-chip--active {
     border-color: var(--assets-accent);
     color: var(--assets-accent);
-    background: rgba(45, 106, 79, 0.1);
+    background: rgba(var(--cent-accent-rgb), 0.1);
 }
 
 .form-submit {

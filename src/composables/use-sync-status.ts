@@ -12,6 +12,9 @@ export const lastSyncAt = ref<number | null>(null);
 let hookInstalled = false;
 let endpointRef: SyncEndpoint | null = null;
 
+/** 当前调度器这一轮同步的 Promise；供手动同步在 toSync 返回后继续 await 到真正结束 */
+let latestRunningSync: Promise<void> | null = null;
+
 const refreshPending = async () => {
     if (!endpointRef) return;
     try {
@@ -36,6 +39,7 @@ const installSyncHooks = (ep: SyncEndpoint) => {
     }
 
     ep.onSync((running) => {
+        latestRunningSync = running;
         syncing.value = true;
         running
             .then(async () => {
@@ -50,27 +54,46 @@ const installSyncHooks = (ep: SyncEndpoint) => {
             })
             .finally(async () => {
                 syncing.value = false;
+                latestRunningSync = null;
                 await refreshPending();
             });
     });
 };
 
 export function useSyncStatus() {
-    const { ep } = useSync();
+    const { ep, selectedBookId } = useSync();
 
     onMounted(async () => {
         installSyncHooks(ep);
         await refreshPending();
     });
 
+    /**
+     * 与入口一致：先 initBook 再 toSync。
+     * 点击起即显示加载，直到本轮上传同步结束（toSync 本身不 await 调度回调）。
+     */
     const triggerSync = async () => {
+        syncing.value = true;
         try {
+            const bookId = selectedBookId.value?.trim();
+            if (bookId) {
+                await ep.initBook(bookId);
+            }
             await ep.toSync();
+            const run = latestRunningSync;
+            if (run) {
+                await run.catch(() => {
+                    /* 失败提示已在 onSync 链中 */
+                });
+            }
         } catch {
             showToast({
                 message: "同步失败，数据已保存在本机，联网后将同步到 Gitee",
                 duration: 3000,
             });
+        } finally {
+            syncing.value = false;
+            await refreshPending();
         }
     };
 
