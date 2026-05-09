@@ -20,7 +20,6 @@ export type SyncEndpoint = {
         name: string;
     }>;
     initBook: (id: string) => Promise<any>;
-    initAllTables: (bookId: string) => Promise<any>;
     inviteForBook?: (bookId: string) => any;
     deleteBook: (bookId: string) => Promise<any>;
 

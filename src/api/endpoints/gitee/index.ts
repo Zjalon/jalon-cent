@@ -146,9 +146,6 @@ export const GiteeEndpoint: SyncEndpointFactory = {
             },
             createBook: repo.create,
             initBook: repo.init,
-            initAllTables: async (bookId: string) => {
-                await repo.init(bookId);
-            },
             deleteBook,
             inviteForBook,
 
