@@ -96,7 +96,7 @@ export type Bill = {
 /** 每笔账单仅可以设置一个BillCategory，用于标记这些支出或者收入项属于某些分类
  * 分类也分为父类和子类，分别表示更加详细的类别
  * 一般来说，大部分账单分类都可以在默认的分类中找到，如果实在没有对应的分类，应该将新增的分类添加到GlobalMeta.categories中，新增分类只需要@required 标记的字段即可，并且新增的分类customName字段必须为true，其余字段可以根据需要设置为空字符串或者undefined
- * 默认的分类为：{{AllBillCategories}}
+ * 应用内置默认分类见 `src/ledger/category-zh-presets.ts`（与账本 `meta.categories` 合并展示）
  */
 
 export type BillCategory = {

@@ -9,12 +9,12 @@ const router = createRouter({
         {
             path: "/login",
             name: "login",
-            component: () => import("../pages/Login.vue"),
+            component: () => import("../pages/login/Login.vue"),
         },
         {
             path: "/book-select",
             name: "book-select",
-            component: () => import("../pages/BookSelect.vue"),
+            component: () => import("../pages/book-select/BookSelect.vue"),
         },
         {
             path: "/",
@@ -23,27 +23,30 @@ const router = createRouter({
                 {
                     path: "",
                     name: "home",
-                    component: () => import("../pages/Home.vue"),
+                    component: () => import("../pages/home/Home.vue"),
                 },
                 {
                     path: "stat",
                     name: "stat",
-                    component: () => import("../pages/Stat.vue"),
+                    component: () => import("../pages/stat/Stat.vue"),
                 },
                 {
                     path: "assets",
                     name: "assets",
-                    component: () => import("../pages/Assets.vue"),
+                    component: () => import("../pages/assets/Assets.vue"),
                 },
                 {
                     path: "profile",
                     name: "profile",
-                    component: () => import("../pages/Profile.vue"),
+                    component: () => import("../pages/profile/Profile.vue"),
                 },
                 {
                     path: "profile/categories/:kind",
                     name: "profile-categories",
-                    component: () => import("../pages/CategoryManage.vue"),
+                    component: () =>
+                        import(
+                            "../pages/profile/categories/CategoryManage.vue"
+                        ),
                 },
             ],
         },

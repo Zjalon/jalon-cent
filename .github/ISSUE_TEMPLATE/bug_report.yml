@@ -19,7 +19,7 @@ body:
       label: ⚠️ 前置检查
       options:
         - label: 我已经搜索过现有的 Issue，确保没有重复提交。
-        - label: 我已经阅读了 CONTRIBUTING.md 中的开发与反馈规则。
+        - label: 我已经阅读仓库根目录 README.md 中的开发与贡献说明。
 
   - type: textarea
     id: env-info

@@ -4,7 +4,6 @@ import type { Action, BaseItem, Full } from "@/database/stash";
 import { BillIndexedDBStorage } from "@/database/storage";
 import type { Account } from "@/database/tables/account";
 import type { User } from "@/database/tables/user";
-import { t } from "@/i18n";
 import type { Bill } from "@/ledger/type";
 import {
     PROFILE_ACCOUNTS_KEY,
@@ -26,7 +25,7 @@ export const LoginAPI = createLoginAPI();
 
 const manuallyLogin = async ({ modal }: { modal: Modal }) => {
     const token = await modal.prompt({
-        title: t("please-enter-your-gitee-token"),
+        title: "请输入 Gitee 访问令牌",
         input: { type: "text" },
     });
     if (!token) {
@@ -60,12 +59,16 @@ export const GiteeEndpoint: SyncEndpointFactory = {
         };
 
         const inviteForBook = async (bookId: string) => {
-            await modal.prompt({ title: t("invite-tip") });
+            await modal.prompt({
+                title: "将打开 Gitee 仓库「成员」页面，请在网页中完成协作者邀请",
+            });
             window.open(`https://gitee.com/${bookId}/team`, "_blank");
         };
 
         const deleteBook = async (bookId: string) => {
-            await modal.prompt({ title: t("delete-book-tip") });
+            await modal.prompt({
+                title: "将打开 Gitee 仓库「删除仓库」设置，请在网页中确认删除",
+            });
             window.open(
                 `https://gitee.com/${bookId}/settings#remove`,
                 "_blank",
