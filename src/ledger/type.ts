@@ -34,6 +34,8 @@ export type BillAccount = {
     color: string;
     /** 初始余额，单位同 Amount (10000:1) */
     initialBalance?: number;
+    /** 账户类型（现金/银行卡等），与 icon 头像区分 */
+    accountType?: string;
 };
 
 /** 用户资料 */

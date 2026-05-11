@@ -35,13 +35,14 @@ const COLOR_PRESETS = [
     "#606c38",
 ] as const;
 
-const ICON_PRESETS: { icon: string; label: string }[] = [
-    { icon: "mdi--cash", label: "现金" },
-    { icon: "mdi--credit-card-outline", label: "银行卡" },
-    { icon: "mdi--alpha-a-circle-outline", label: "支付宝" },
-    { icon: "mdi--wechat", label: "微信" },
-    { icon: "mdi--wallet-outline", label: "钱包" },
-    { icon: "mdi--piggy-bank-outline", label: "储蓄" },
+/** 账户类型与列表图标一一对应（Vant Icon name） */
+const ACCOUNT_TYPE_PRESETS: { id: string; label: string; icon: string }[] = [
+    { id: "cash", label: "现金", icon: "gold-coin-o" },
+    { id: "bank", label: "银行卡", icon: "credit-pay" },
+    { id: "alipay", label: "支付宝", icon: "balance-pay" },
+    { id: "wechat", label: "微信", icon: "chat-o" },
+    { id: "wallet", label: "钱包", icon: "balance-o" },
+    { id: "savings", label: "储蓄", icon: "gem-o" },
 ];
 
 const totalRaw = computed(() =>
@@ -61,7 +62,7 @@ const formEditingId = ref<string | null>(null);
 const formName = ref("");
 const formBalanceYuan = ref("0");
 const formColor = ref(COLOR_PRESETS[0]);
-const formIcon = ref(ICON_PRESETS[0].icon);
+const formAccountType = ref(ACCOUNT_TYPE_PRESETS[0].id);
 const formSubmitting = ref(false);
 
 const balancePopupVisible = ref(false);
@@ -85,10 +86,19 @@ function balanceLabel(raw?: number) {
     return fmt.format(amountToNumber(raw ?? 0));
 }
 
-function initials(name: string) {
-    const t = name.trim();
-    if (!t) return "账";
-    return t.length <= 2 ? t : t.slice(0, 2);
+/** 展示与保存均以 accountType 为准；缺失时回退默认类型 */
+function resolvedAccountType(acc: Account): string {
+    return acc.accountType ?? ACCOUNT_TYPE_PRESETS[0].id;
+}
+
+function iconForAccountType(typeId: string): string {
+    const p = ACCOUNT_TYPE_PRESETS.find((x) => x.id === typeId);
+    return p?.icon ?? ACCOUNT_TYPE_PRESETS[0].icon;
+}
+
+/** 列表头像：由账户类型决定图标 */
+function accountIconForDisplay(acc: Account): string {
+    return iconForAccountType(resolvedAccountType(acc));
 }
 
 function resetForm() {
@@ -96,7 +106,7 @@ function resetForm() {
     formName.value = "";
     formBalanceYuan.value = "0";
     formColor.value = COLOR_PRESETS[0];
-    formIcon.value = ICON_PRESETS[0].icon;
+    formAccountType.value = ACCOUNT_TYPE_PRESETS[0].id;
 }
 
 function openCreate() {
@@ -114,7 +124,7 @@ function openEdit(acc: Account) {
     formName.value = acc.name;
     formBalanceYuan.value = String(amountToNumber(acc.initialBalance ?? 0));
     formColor.value = acc.color || COLOR_PRESETS[0];
-    formIcon.value = acc.icon || ICON_PRESETS[0].icon;
+    formAccountType.value = resolvedAccountType(acc);
     formVisible.value = true;
 }
 
@@ -156,12 +166,14 @@ async function submitBalanceAdjust() {
         return;
     }
 
+    const typeId = resolvedAccountType(acc);
     const payload: Account = {
         id: acc.id,
         name: acc.name,
-        icon: acc.icon,
+        icon: iconForAccountType(typeId),
         color: acc.color,
         initialBalance: numberToAmount(yuan),
+        accountType: typeId,
     };
 
     balanceSubmitting.value = true;
@@ -228,12 +240,14 @@ async function submitForm() {
     const initialBalance = numberToAmount(yuan);
 
     const id = formEditingId.value ?? shortId();
+    const typeId = formAccountType.value;
     const payload: Account = {
         id,
         name,
-        icon: formIcon.value,
+        icon: iconForAccountType(typeId),
         color: formColor.value,
         initialBalance,
+        accountType: typeId,
     };
 
     formSubmitting.value = true;
@@ -341,9 +355,10 @@ onUnmounted(() => {
                                         background: acc.color || '#2d6a4f',
                                     }"
                                 >
-                                    <span class="assets-card__avatar-text">{{
-                                        initials(acc.name)
-                                    }}</span>
+                                    <van-icon
+                                        :name="accountIconForDisplay(acc)"
+                                        class="assets-card__avatar-icon"
+                                    />
                                 </div>
                                 <div class="assets-card__body">
                                     <p class="assets-card__name">
@@ -475,19 +490,29 @@ onUnmounted(() => {
                 </div>
 
                 <div class="form-block">
-                    <p class="form-block__label">图标类型</p>
-                    <div class="form-icons">
+                    <p class="form-block__label">账户类型</p>
+                    <p class="form-block__hint">
+                        图标随类型自动匹配（如现金为金币图标）。
+                    </p>
+                    <div class="form-icons form-icons--types">
                         <button
-                            v-for="p in ICON_PRESETS"
-                            :key="p.icon"
+                            v-for="p in ACCOUNT_TYPE_PRESETS"
+                            :key="p.id"
                             type="button"
-                            class="form-icon-chip"
+                            class="form-type-chip"
                             :class="{
-                                'form-icon-chip--active': formIcon === p.icon,
+                                'form-type-chip--active':
+                                    formAccountType === p.id,
                             }"
-                            @click="formIcon = p.icon"
+                            @click="formAccountType = p.id"
                         >
-                            {{ p.label }}
+                            <van-icon
+                                :name="p.icon"
+                                class="form-type-chip__ico"
+                            />
+                            <span class="form-type-chip__txt">{{
+                                p.label
+                            }}</span>
                         </button>
                     </div>
                 </div>
@@ -787,8 +812,9 @@ onUnmounted(() => {
     box-shadow: 0 6px 14px -6px rgba(0, 0, 0, 0.35);
 }
 
-.assets-card__avatar-text {
-    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
+.assets-card__avatar-icon {
+    font-size: 22px;
+    opacity: 0.98;
 }
 
 .assets-card__body {
@@ -940,6 +966,16 @@ onUnmounted(() => {
     color: var(--assets-muted);
 }
 
+.form-block__hint {
+    margin: -4px 0 12px;
+    padding-left: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.45;
+    color: var(--assets-muted);
+    opacity: 0.85;
+}
+
 .form-colors {
     display: flex;
     flex-wrap: wrap;
@@ -964,28 +1000,53 @@ onUnmounted(() => {
     transform: scale(1.06);
 }
 
-.form-icons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+.form-icons--types {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
 }
 
-.form-icon-chip {
-    padding: 8px 12px;
-    border-radius: 999px;
-    border: 1px solid rgba(var(--cent-accent-rgb), 0.2);
-    background: rgba(255, 254, 251, 0.9);
+.form-type-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 8px;
+    border-radius: 12px;
+    border: 1px solid rgba(var(--cent-accent-rgb), 0.18);
+    background: rgba(255, 254, 251, 0.95);
+    cursor: pointer;
     font-family: inherit;
-    font-size: 12px;
+    transition:
+        border-color 0.15s ease,
+        background 0.15s ease;
+}
+
+.form-type-chip__ico {
+    font-size: 22px;
+    color: var(--assets-accent);
+}
+
+.form-type-chip__txt {
+    font-size: 11px;
     font-weight: 600;
     color: var(--assets-muted);
-    cursor: pointer;
+    line-height: 1.2;
+    text-align: center;
 }
 
-.form-icon-chip--active {
+.form-type-chip--active {
     border-color: var(--assets-accent);
+    background: rgba(var(--cent-accent-rgb), 0.12);
+}
+
+.form-type-chip--active .form-type-chip__ico {
     color: var(--assets-accent);
-    background: rgba(var(--cent-accent-rgb), 0.1);
+}
+
+.form-type-chip--active .form-type-chip__txt {
+    color: var(--assets-accent);
 }
 
 .form-submit {

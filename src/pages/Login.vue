@@ -7,7 +7,7 @@ import { useAuth } from "@/composables/use-auth";
 const router = useRouter();
 const { login } = useAuth();
 
-const token = ref("4944bfa78e6b8baab3b5f9ad3d5e0f0f");
+const token = ref("");
 const loading = ref(false);
 
 const onSubmit = async () => {

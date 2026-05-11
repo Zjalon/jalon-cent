@@ -172,6 +172,8 @@ export const createTidal = <Item extends BaseItem>({
             remoteStructure,
             localStructure,
         );
+        /** 本次 diff 是否包含 meta.json；为 false 时不应写入本地 meta，否则会误用「仅有 tags」的快照覆盖 categories */
+        const metaInDiff = structure.meta !== undefined;
         const results = await fetchContent(
             storeFullName,
             Array.from(
@@ -203,18 +205,21 @@ export const createTidal = <Item extends BaseItem>({
                     return [k, value];
                 }),
         ) as StoreDetail;
-        return { detail, remote: remoteStructure, patch };
+        return { detail, remote: remoteStructure, patch, metaInDiff };
     };
 
     // init single store: pull remote structure+content -> patch/init local stash
     const init = async (storeFullName: string) => {
         const { itemBucket } = getStore(storeFullName);
 
-        const { detail, remote, patch } = await fetchStoreDetail(storeFullName);
+        const { detail, remote, patch, metaInDiff } =
+            await fetchStoreDetail(storeFullName);
         const remoteItems = detail.chunks.flatMap((v) =>
             chunkContentToActions<Item>(v.content),
         );
-        const normalizedMeta = normalizeMetaSnapshot(detail.meta?.content);
+        const normalizedMeta = metaInDiff
+            ? normalizeMetaSnapshot(detail.meta?.content)
+            : undefined;
         if (patch) {
             await itemBucket.patch(remoteItems, normalizedMeta);
         } else {

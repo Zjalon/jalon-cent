@@ -257,6 +257,12 @@ export const GiteeEndpoint: SyncEndpointFactory = {
                         : Array.isArray(prev.tags)
                           ? prev.tags
                           : [],
+                    /** 与 tags 一致：避免 patch 含 categories: undefined 时覆盖掉已有自定义分类 */
+                    categories: Array.isArray(patch.categories)
+                        ? patch.categories
+                        : Array.isArray(prev.categories)
+                          ? prev.categories
+                          : undefined,
                 };
                 await repo.batch(bookId, [
                     {
